@@ -1,0 +1,211 @@
+/* Apptook Digital Store — โทน stitch / APPTOOK, ฟอนต์แบบระบบ (SF บน Apple) */
+
+.apptook-ds {
+	--apptook-surface: #f4fbfa;
+	--apptook-on-surface: #161d1d;
+	--apptook-primary: #00696b;
+	--apptook-primary-bright: #41e1e3;
+	--apptook-container: #e9efef;
+	--apptook-radius: 0.75rem;
+	--apptook-font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, "Noto Sans", "Liberation Sans", Arial, sans-serif;
+	color: var(--apptook-on-surface);
+	font-family: var(--apptook-font-text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.apptook-ds-shop-list,
+.apptook-ds-library-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 640px) {
+	.apptook-ds-shop-list {
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	}
+}
+
+.apptook-ds-shop-item,
+.apptook-ds-library-item {
+	background: var(--apptook-container);
+	border-radius: var(--apptook-radius);
+	padding: 1rem;
+	transition: background 0.15s ease;
+}
+
+.apptook-ds-shop-item:hover {
+	background: #dfe8e8;
+}
+
+.apptook-ds-shop-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	text-decoration: none;
+	color: inherit;
+}
+
+.apptook-ds-shop-thumb img {
+	border-radius: var(--apptook-radius);
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+.apptook-ds-shop-price {
+	font-weight: 600;
+	color: var(--apptook-primary);
+}
+
+.apptook-ds-single-product {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 1.5rem 1rem 3rem;
+}
+
+.apptook-ds-product-title {
+	font-size: clamp(1.75rem, 4vw, 2.25rem);
+	margin: 0 0 0.5rem;
+}
+
+.apptook-ds-product-price {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--apptook-primary);
+	margin: 0 0 1.5rem;
+}
+
+.apptook-ds-product-media img {
+	border-radius: 1rem;
+	width: 100%;
+	height: auto;
+}
+
+.apptook-ds-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.75rem 1.25rem;
+	border: 0;
+	border-radius: var(--apptook-radius);
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.apptook-ds-btn-primary {
+	color: #fff;
+	background: linear-gradient(135deg, var(--apptook-primary) 0%, var(--apptook-primary-bright) 100%);
+	box-shadow: 0 12px 28px rgba(22, 29, 29, 0.08);
+}
+
+.apptook-ds-btn-primary:hover {
+	filter: brightness(1.05);
+}
+
+.apptook-ds-login-hint a {
+	color: var(--apptook-primary);
+	font-weight: 600;
+}
+
+.apptook-ds-library-title {
+	margin: 0 0 0.5rem;
+	font-size: 1.1rem;
+}
+
+.apptook-ds-key-value {
+	display: block;
+	margin-top: 0.35rem;
+	padding: 0.75rem 1rem;
+	background: var(--apptook-surface);
+	border-radius: 0.5rem;
+	font-size: 0.95rem;
+	word-break: break-all;
+}
+
+.apptook-ds-empty,
+.apptook-ds-notice {
+	padding: 1rem;
+	background: var(--apptook-container);
+	border-radius: var(--apptook-radius);
+}
+
+/* Modal */
+.apptook-ds-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100000;
+	padding: 1rem;
+}
+
+.apptook-ds-modal {
+	background: var(--apptook-surface);
+	color: var(--apptook-on-surface);
+	border-radius: 1rem;
+	max-width: 420px;
+	width: 100%;
+	padding: 1.5rem;
+	box-shadow: 0 20px 40px rgba(23, 29, 29, 0.12);
+}
+
+.apptook-ds-modal h2 {
+	margin: 0 0 1rem;
+	font-size: 1.25rem;
+}
+
+.apptook-ds-modal-amount {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: var(--apptook-primary);
+	margin: 0 0 1rem;
+}
+
+.apptook-ds-modal-qr {
+	text-align: center;
+	margin-bottom: 1rem;
+}
+
+.apptook-ds-modal-qr img {
+	max-width: 220px;
+	height: auto;
+	border-radius: 0.5rem;
+}
+
+.apptook-ds-modal-note {
+	font-size: 0.9rem;
+	opacity: 0.85;
+	margin-bottom: 1rem;
+}
+
+.apptook-ds-modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.apptook-ds-modal-actions .apptook-ds-btn-secondary {
+	background: var(--apptook-container);
+	color: var(--apptook-on-surface);
+}
+
+.apptook-ds-slip-input {
+	width: 100%;
+	margin: 0.75rem 0;
+}
+
+.apptook-ds-modal-error {
+	color: #ba1a1a;
+	font-size: 0.9rem;
+	margin-top: 0.5rem;
+}

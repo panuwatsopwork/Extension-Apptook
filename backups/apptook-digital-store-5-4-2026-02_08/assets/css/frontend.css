@@ -1,0 +1,333 @@
+/* Apptook Digital Store — โทน stitch / APPTOOK, ฟอนต์แบบระบบ (SF บน Apple) */
+
+.apptook-ds {
+	--apptook-surface: #f4fbfa;
+	--apptook-on-surface: #161d1d;
+	--apptook-primary: #00696b;
+	--apptook-primary-bright: #41e1e3;
+	--apptook-container: #e9efef;
+	--apptook-radius: 0.75rem;
+	--apptook-font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, "Noto Sans", "Liberation Sans", Arial, sans-serif;
+	color: var(--apptook-on-surface);
+	font-family: var(--apptook-font-text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.apptook-ds-shop-list,
+.apptook-ds-library-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 640px) {
+	.apptook-ds-shop-list {
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	}
+}
+
+.apptook-ds-shop-item,
+.apptook-ds-library-item {
+	background: var(--apptook-container);
+	border-radius: var(--apptook-radius);
+	padding: 1rem;
+	transition: background 0.15s ease;
+}
+
+.apptook-ds-shop-item:hover {
+	background: #dfe8e8;
+}
+
+.apptook-ds-shop-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	text-decoration: none;
+	color: inherit;
+}
+
+.apptook-ds-shop-thumb img {
+	border-radius: var(--apptook-radius);
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+.apptook-ds-shop-price {
+	font-weight: 600;
+	color: var(--apptook-primary);
+}
+
+.apptook-ds-single-product {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 1.5rem 1rem 3rem;
+}
+
+.apptook-ds-product-title {
+	font-size: clamp(1.75rem, 4vw, 2.25rem);
+	margin: 0 0 0.5rem;
+}
+
+.apptook-ds-product-price {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--apptook-primary);
+	margin: 0 0 1.5rem;
+}
+
+.apptook-ds-product-media img {
+	border-radius: 1rem;
+	width: 100%;
+	height: auto;
+}
+
+.apptook-ds-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.75rem 1.25rem;
+	border: 0;
+	border-radius: var(--apptook-radius);
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.apptook-ds-btn-primary {
+	color: #fff;
+	background: linear-gradient(135deg, var(--apptook-primary) 0%, var(--apptook-primary-bright) 100%);
+	box-shadow: 0 12px 28px rgba(22, 29, 29, 0.08);
+}
+
+.apptook-ds-btn-primary:hover {
+	filter: brightness(1.05);
+}
+
+.apptook-ds-login-hint a {
+	color: var(--apptook-primary);
+	font-weight: 600;
+}
+
+.apptook-ds-library-title {
+	margin: 0 0 0.5rem;
+	font-size: 1.1rem;
+}
+
+.apptook-ds-key-value {
+	display: block;
+	margin-top: 0.35rem;
+	padding: 0.75rem 1rem;
+	background: var(--apptook-surface);
+	border-radius: 0.5rem;
+	font-size: 0.95rem;
+	word-break: break-all;
+}
+
+.apptook-ds-empty,
+.apptook-ds-notice {
+	padding: 1rem;
+	background: var(--apptook-container);
+	border-radius: var(--apptook-radius);
+}
+
+/* Modal */
+.apptook-ds-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100000;
+	padding: 1rem;
+}
+
+.apptook-ds-modal {
+	background: var(--apptook-surface);
+	color: var(--apptook-on-surface);
+	border-radius: 1rem;
+	max-width: 420px;
+	width: 100%;
+	padding: 1.5rem;
+	box-shadow: 0 20px 40px rgba(23, 29, 29, 0.12);
+}
+
+.apptook-ds-modal h2 {
+	margin: 0 0 1rem;
+	font-size: 1.25rem;
+}
+
+.apptook-ds-modal-amount {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: var(--apptook-primary);
+	margin: 0 0 1rem;
+}
+
+.apptook-ds-modal-qr {
+	text-align: center;
+	margin-bottom: 1rem;
+}
+
+.apptook-ds-modal-qr img {
+	max-width: 220px;
+	height: auto;
+	border-radius: 0.5rem;
+}
+
+.apptook-ds-modal-note {
+	font-size: 0.9rem;
+	opacity: 0.85;
+	margin-bottom: 1rem;
+}
+
+.apptook-ds-modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.apptook-ds-modal-actions .apptook-ds-btn-secondary {
+	background: var(--apptook-container);
+	color: var(--apptook-on-surface);
+}
+
+.apptook-ds-slip-input {
+	width: 100%;
+	margin: 0.75rem 0;
+}
+
+.apptook-ds-modal-error {
+	color: #ba1a1a;
+	font-size: 0.9rem;
+	margin-top: 0.5rem;
+}
+
+/* Stitch purchase modal */
+.apptook-st-purchase-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	background: rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(4px);
+}
+
+.apptook-st-purchase-modal {
+	position: relative;
+	width: 100%;
+	max-width: 42rem;
+	border-radius: 2.5rem;
+	background: #fff;
+	overflow: hidden;
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+}
+
+.apptook-st-purchase-close {
+	position: absolute;
+	top: 1.5rem;
+	right: 1.5rem;
+	border: 0;
+	background: none;
+	color: #94a3b8;
+	cursor: pointer;
+	z-index: 2;
+}
+
+.apptook-st-purchase-head {
+	padding: 2rem;
+	border-bottom: 1px solid #f1f5f9;
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.apptook-st-purchase-head-left {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.apptook-st-purchase-icon {
+	width: 4rem;
+	height: 4rem;
+	border-radius: 1rem;
+	background: #eff5f4;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.6rem;
+}
+
+.apptook-st-purchase-icon img { width: 100%; height: 100%; object-fit: contain; }
+.apptook-st-purchase-icon .material-symbols-outlined { font-size: 2rem; }
+
+.apptook-st-purchase-title { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.apptook-st-purchase-sub { margin: 0.1rem 0 0; font-size: 0.875rem; color: #64748b; }
+
+.apptook-st-purchase-head-right { text-align: right; }
+.apptook-st-purchase-price { font-size: 1.875rem; font-weight: 700; color: #161d1d; }
+.apptook-st-purchase-price-sub { font-size: 0.75rem; color: #94a3b8; }
+
+.apptook-st-purchase-body { padding: 2rem; display: grid; gap: 0.9rem; }
+.apptook-st-purchase-label { font-size: 0.875rem; font-weight: 700; color: #334155; }
+
+.apptook-st-purchase-chip-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.apptook-st-duration-chip {
+	padding: 0.75rem 0.5rem;
+	border-radius: 1rem;
+	border: 1px solid #e2e8f0;
+	background: #fff;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.apptook-st-duration-chip.is-active {
+	background: #41e1e3;
+	color: #fff;
+	border-color: #41e1e3;
+}
+
+.apptook-st-purchase-select {
+	width: 100%;
+	padding: 0.95rem 1rem;
+	border-radius: 1rem;
+	border: 0;
+	background: #eff5f4;
+}
+
+.apptook-st-purchase-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+.apptook-st-purchase-cancel,
+.apptook-st-purchase-confirm {
+	padding: 0.9rem 1rem;
+	border-radius: 1rem;
+	font-weight: 700;
+	cursor: pointer;
+	border: 0;
+}
+
+.apptook-st-purchase-cancel { flex: 1; background: #fff; border: 2px solid #f1f5f9; color: #475569; }
+.apptook-st-purchase-confirm {
+	flex: 1.5;
+	background: #ff5a5f;
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}

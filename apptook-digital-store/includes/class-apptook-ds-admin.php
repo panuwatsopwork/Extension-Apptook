@@ -48,7 +48,16 @@ final class Apptook_DS_Admin {
 			array(),
 			APPTOOK_DS_VERSION
 		);
+
+		wp_enqueue_script(
+			'apptook-ds-admin',
+			APPTOOK_DS_URL . 'assets/js/admin.js',
+			array(),
+			APPTOOK_DS_VERSION,
+			true
+		);
 	}
+
 
 	public function register_settings_page(): void {
 		add_submenu_page(
@@ -283,52 +292,100 @@ final class Apptook_DS_Admin {
 		$durations_text = is_string($durations_raw) ? $durations_raw : "1|0|1\n3|0|0\n6|0|0\n12|0|0";
 		$types_text = is_string($types_raw) ? $types_raw : "shared|1 profile Shared|0|1\nprivate|Private Account (Full ownership)|0|0";
 		?>
-		<p>
-			<label for="apptook_price"><strong><?php esc_html_e('ราคา (บาท)', 'apptook-digital-store'); ?></strong></label><br />
-			<input type="number" step="0.01" min="0" name="apptook_price" id="apptook_price" value="<?php echo esc_attr((string) $price); ?>" class="regular-text" />
-		</p>
-		<p>
-			<label for="apptook_period"><strong><?php esc_html_e('หน่วยราคา (แสดงบนการ์ด)', 'apptook-digital-store'); ?></strong></label><br />
-			<input type="text" name="apptook_period" id="apptook_period" value="<?php echo esc_attr(is_string($period) ? $period : ''); ?>" class="regular-text" placeholder="<?php esc_attr_e('/ เดือน', 'apptook-digital-store'); ?>" />
-		</p>
-		<p>
-			<label for="apptook_badge"><strong><?php esc_html_e('แถบป้ายมุมขวาบน (ถ้ามี)', 'apptook-digital-store'); ?></strong></label><br />
-			<input type="text" name="apptook_badge" id="apptook_badge" value="<?php echo esc_attr(is_string($badge) ? $badge : ''); ?>" class="regular-text" placeholder="<?php esc_attr_e('เช่น 4K Ultra HD', 'apptook-digital-store'); ?>" />
-		</p>
-		<p>
-			<label for="apptook_badge_style"><strong><?php esc_html_e('สไตล์ป้าย (ตามดีไซน์ stitch)', 'apptook-digital-store'); ?></strong></label><br />
-			<select name="apptook_badge_style" id="apptook_badge_style">
-				<option value="" <?php selected($badge_style, ''); ?>><?php esc_html_e('มิ้นต์ (ค่าเริ่มต้น)', 'apptook-digital-store'); ?></option>
-				<option value="green" <?php selected($badge_style, 'green'); ?>><?php esc_html_e('เขียว (แบบ ChatGPT ใน stitch)', 'apptook-digital-store'); ?></option>
-			</select>
-		</p>
-		<p>
-			<label for="apptook_bullets"><strong><?php esc_html_e('จุดเด่น (หนึ่งบรรทัดต่อหนึ่งข้อ — แสดงบนการ์ด)', 'apptook-digital-store'); ?></strong></label><br />
-			<textarea name="apptook_bullets" id="apptook_bullets" rows="5" class="large-text"><?php echo esc_textarea(is_string($bullets) ? $bullets : ''); ?></textarea>
-		</p>
-		<p class="description"><?php esc_html_e('ถ้าว่าง จะลองใช้บรรทัดจากคำโปรย (Excerpt) แทน', 'apptook-digital-store'); ?></p>
-		<p>
-			<label for="apptook_type_enabled"><strong><?php esc_html_e('เปิดใช้งาน Type ใน popup ซื้อ', 'apptook-digital-store'); ?></strong></label><br />
-			<label><input type="checkbox" name="apptook_type_enabled" id="apptook_type_enabled" value="1" <?php checked($type_enabled); ?> /> <?php esc_html_e('แสดง Select Type (ถ้าไม่ติ๊กจะซ่อน)', 'apptook-digital-store'); ?></label>
-		</p>
-		<p>
-			<label for="apptook_duration_enabled"><strong><?php esc_html_e('เปิดใช้งาน Purchase months ใน popup ซื้อ', 'apptook-digital-store'); ?></strong></label><br />
-			<label><input type="checkbox" name="apptook_duration_enabled" id="apptook_duration_enabled" value="1" <?php checked($duration_enabled); ?> /> <?php esc_html_e('แสดง Purchase months (ถ้าไม่ติ๊กจะซ่อน)', 'apptook-digital-store'); ?></label>
-		</p>
-		<p>
-			<label for="apptook_duration_rows"><strong><?php esc_html_e('Duration rows (หนึ่งบรรทัดต่อหนึ่งแถว): months|price|is_default', 'apptook-digital-store'); ?></strong></label><br />
-			<textarea name="apptook_duration_rows" id="apptook_duration_rows" rows="5" class="large-text code"><?php echo esc_textarea($durations_text); ?></textarea>
-			<span class="description"><?php esc_html_e('ตัวอย่าง: 1|360.37|1', 'apptook-digital-store'); ?></span>
-		</p>
-		<p>
-			<label for="apptook_type_rows"><strong><?php esc_html_e('Type rows (หนึ่งบรรทัดต่อหนึ่งแถว): key|label|price_modifier|is_default', 'apptook-digital-store'); ?></strong></label><br />
-			<textarea name="apptook_type_rows" id="apptook_type_rows" rows="4" class="large-text code"><?php echo esc_textarea($types_text); ?></textarea>
-			<span class="description"><?php esc_html_e('ตัวอย่าง: shared|1 profile Shared|0|1', 'apptook-digital-store'); ?></span>
-		</p>
-		<p>
-			<label for="apptook_key_pool"><strong><?php esc_html_e('คีย์คงเหลือ (หนึ่งบรรทัดต่อหนึ่งคีย์)', 'apptook-digital-store'); ?></strong></label><br />
-			<textarea name="apptook_key_pool" id="apptook_key_pool" rows="8" class="large-text code"><?php echo esc_textarea(is_string($keys) ? $keys : ''); ?></textarea>
-		</p>
+		<div class="apptook-ds-admin-form">
+			<div class="apptook-ds-admin-section">
+				<h3><?php esc_html_e('ข้อมูลหลักสินค้า', 'apptook-digital-store'); ?></h3>
+				<p class="description"><?php esc_html_e('กำหนดราคา การแสดงผลบนการ์ด และข้อความจุดเด่นของสินค้า', 'apptook-digital-store'); ?></p>
+
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_price"><strong><?php esc_html_e('ราคา (บาท)', 'apptook-digital-store'); ?></strong></label>
+					<input type="number" step="0.01" min="0" name="apptook_price" id="apptook_price" value="<?php echo esc_attr((string) $price); ?>" class="regular-text" />
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_period"><strong><?php esc_html_e('หน่วยราคา (แสดงบนการ์ด)', 'apptook-digital-store'); ?></strong></label>
+					<input type="text" name="apptook_period" id="apptook_period" value="<?php echo esc_attr(is_string($period) ? $period : ''); ?>" class="regular-text" placeholder="<?php esc_attr_e('/ เดือน', 'apptook-digital-store'); ?>" />
+					<p class="description"><?php esc_html_e('ตัวอย่าง: / เดือน, / 3 เดือน, / ปี', 'apptook-digital-store'); ?></p>
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_badge"><strong><?php esc_html_e('แถบป้ายมุมขวาบน (ถ้ามี)', 'apptook-digital-store'); ?></strong></label>
+					<input type="text" name="apptook_badge" id="apptook_badge" value="<?php echo esc_attr(is_string($badge) ? $badge : ''); ?>" class="regular-text" placeholder="<?php esc_attr_e('เช่น 4K Ultra HD', 'apptook-digital-store'); ?>" />
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_badge_style"><strong><?php esc_html_e('สไตล์ป้าย (ตามดีไซน์ stitch)', 'apptook-digital-store'); ?></strong></label>
+					<select name="apptook_badge_style" id="apptook_badge_style">
+						<option value="" <?php selected($badge_style, ''); ?>><?php esc_html_e('มิ้นต์ (ค่าเริ่มต้น)', 'apptook-digital-store'); ?></option>
+						<option value="green" <?php selected($badge_style, 'green'); ?>><?php esc_html_e('เขียว (แบบ ChatGPT ใน stitch)', 'apptook-digital-store'); ?></option>
+					</select>
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_bullets"><strong><?php esc_html_e('จุดเด่น (หนึ่งบรรทัดต่อหนึ่งข้อ — แสดงบนการ์ด)', 'apptook-digital-store'); ?></strong></label>
+					<textarea name="apptook_bullets" id="apptook_bullets" rows="5" class="large-text"><?php echo esc_textarea(is_string($bullets) ? $bullets : ''); ?></textarea>
+					<p class="description"><?php esc_html_e('ถ้าว่าง จะลองใช้บรรทัดจากคำโปรย (Excerpt) แทน', 'apptook-digital-store'); ?></p>
+				</div>
+			</div>
+
+			<div class="apptook-ds-admin-section">
+				<h3><?php esc_html_e('ตัวเลือกการซื้อใน Popup', 'apptook-digital-store'); ?></h3>
+				<p class="description"><?php esc_html_e('เปิด/ปิดตัวเลือก และกำหนดข้อมูลเป็นรูปแบบแถวเพื่อสร้างตัวเลือกอัตโนมัติ', 'apptook-digital-store'); ?></p>
+
+				<div class="apptook-ds-admin-field apptook-ds-admin-switches">
+					<label><input type="checkbox" name="apptook_type_enabled" id="apptook_type_enabled" value="1" <?php checked($type_enabled); ?> /> <strong><?php esc_html_e('เปิดใช้งาน Type ใน popup ซื้อ', 'apptook-digital-store'); ?></strong></label>
+					<p class="description"><?php esc_html_e('แสดง Select Type (ถ้าไม่ติ๊กจะซ่อน)', 'apptook-digital-store'); ?></p>
+
+					<label><input type="checkbox" name="apptook_duration_enabled" id="apptook_duration_enabled" value="1" <?php checked($duration_enabled); ?> /> <strong><?php esc_html_e('เปิดใช้งาน Purchase months ใน popup ซื้อ', 'apptook-digital-store'); ?></strong></label>
+					<p class="description"><?php esc_html_e('แสดง Purchase months (ถ้าไม่ติ๊กจะซ่อน)', 'apptook-digital-store'); ?></p>
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label><strong><?php esc_html_e('แพ็กระยะเวลา (Duration)', 'apptook-digital-store'); ?></strong></label>
+					<p class="description"><?php esc_html_e('เพิ่มข้อมูลแบบเป็นแถว แทนการพิมพ์เครื่องหมาย | เอง', 'apptook-digital-store'); ?></p>
+
+					<div class="apptook-ds-table-builder" data-builder="duration">
+						<div class="apptook-ds-table apptook-ds-table-head">
+							<div><?php esc_html_e('เดือน', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('ราคา (บาท)', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('ค่าเริ่มต้น', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('จัดการ', 'apptook-digital-store'); ?></div>
+						</div>
+						<div class="apptook-ds-table-body" data-rows></div>
+						<button type="button" class="button" data-add-row><?php esc_html_e('+ เพิ่มระยะเวลา', 'apptook-digital-store'); ?></button>
+					</div>
+
+					<textarea name="apptook_duration_rows" id="apptook_duration_rows" rows="6" class="large-text code apptook-ds-hidden-source" spellcheck="false" data-source="duration"><?php echo esc_textarea($durations_text); ?></textarea>
+				</div>
+
+				<div class="apptook-ds-admin-field">
+					<label><strong><?php esc_html_e('ประเภทบัญชี (Type)', 'apptook-digital-store'); ?></strong></label>
+					<p class="description"><?php esc_html_e('กรอกเป็นช่องแยก อ่านง่ายและแก้ไขสะดวก', 'apptook-digital-store'); ?></p>
+
+					<div class="apptook-ds-table-builder" data-builder="type">
+						<div class="apptook-ds-table apptook-ds-table-head apptook-ds-table-type">
+							<div><?php esc_html_e('Key', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('ชื่อที่แสดง', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('ส่วนเพิ่มราคา', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('ค่าเริ่มต้น', 'apptook-digital-store'); ?></div>
+							<div><?php esc_html_e('จัดการ', 'apptook-digital-store'); ?></div>
+						</div>
+						<div class="apptook-ds-table-body" data-rows></div>
+						<button type="button" class="button" data-add-row><?php esc_html_e('+ เพิ่มประเภท', 'apptook-digital-store'); ?></button>
+					</div>
+
+					<textarea name="apptook_type_rows" id="apptook_type_rows" rows="5" class="large-text code apptook-ds-hidden-source" spellcheck="false" data-source="type"><?php echo esc_textarea($types_text); ?></textarea>
+				</div>
+			</div>
+
+			<div class="apptook-ds-admin-section">
+				<h3><?php esc_html_e('คีย์สินค้า', 'apptook-digital-store'); ?></h3>
+				<div class="apptook-ds-admin-field">
+					<label for="apptook_key_pool"><strong><?php esc_html_e('คีย์คงเหลือ (หนึ่งบรรทัดต่อหนึ่งคีย์)', 'apptook-digital-store'); ?></strong></label>
+					<textarea name="apptook_key_pool" id="apptook_key_pool" rows="10" class="large-text code" spellcheck="false"><?php echo esc_textarea(is_string($keys) ? $keys : ''); ?></textarea>
+				</div>
+			</div>
+		</div>
 		<?php
 	}
 

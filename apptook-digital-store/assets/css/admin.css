@@ -5,3 +5,150 @@
 .apptook-ds-order-actions {
 	margin-top: 1rem;
 }
+
+.apptook-ds-admin-form {
+	display: grid;
+	gap: 16px;
+}
+
+.apptook-ds-admin-section {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 16px;
+}
+
+.apptook-ds-admin-section h3 {
+	margin: 0 0 6px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.apptook-ds-admin-section > .description {
+	margin: 0 0 14px;
+}
+
+.apptook-ds-admin-field {
+	margin-bottom: 14px;
+}
+
+.apptook-ds-admin-field:last-child {
+	margin-bottom: 0;
+}
+
+.apptook-ds-admin-field label {
+	display: inline-block;
+	margin-bottom: 6px;
+}
+
+.apptook-ds-admin-field .regular-text,
+.apptook-ds-admin-field select {
+	min-height: 36px;
+}
+
+.apptook-ds-admin-field textarea.code {
+	font-family: Consolas, Monaco, monospace;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.apptook-ds-admin-switches {
+	display: grid;
+	gap: 8px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.apptook-ds-admin-switches .description {
+	margin: 0 0 8px 22px;
+}
+
+.apptook-ds-admin-switches .description:last-child {
+	margin-bottom: 0;
+}
+
+.apptook-ds-admin-field .description {
+	margin-top: 6px;
+}
+
+.apptook-ds-hidden-source {
+	display: none;
+}
+
+.apptook-ds-table-builder {
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 10px;
+	background: #fff;
+}
+
+.apptook-ds-table {
+	display: grid;
+	grid-template-columns: 1fr 1fr 110px 70px;
+	gap: 10px;
+	align-items: center;
+}
+
+.apptook-ds-table-type {
+	grid-template-columns: 130px 1fr 110px 70px 60px;
+}
+
+.apptook-ds-table-head {
+	font-size: 12px;
+	font-weight: 600;
+	color: #50575e;
+	padding: 0 4px 8px;
+	border-bottom: 1px solid #e2e4e7;
+	margin-bottom: 8px;
+}
+
+.apptook-ds-table-body {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.apptook-ds-table-row {
+	padding: 8px;
+	border: 1px solid #f0f0f1;
+	border-radius: 6px;
+	background: #fcfcfc;
+}
+
+.apptook-ds-table-row input[type="text"],
+.apptook-ds-table-row input[type="number"] {
+	width: 100%;
+	height: 34px;
+}
+
+.apptook-ds-center {
+	display: flex;
+	justify-content: center;
+}
+
+.apptook-ds-admin-form {
+	max-width: 960px;
+}
+
+@media (max-width: 960px) {
+	.apptook-ds-table,
+	.apptook-ds-table-type {
+		grid-template-columns: 1fr;
+	}
+
+	.apptook-ds-table-head {
+		display: none;
+	}
+
+	.apptook-ds-table-row {
+		background: #fff;
+	}
+}
+
+@media (max-width: 782px) {
+	.apptook-ds-admin-section {
+		padding: 12px;
+	}
+}

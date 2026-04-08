@@ -164,6 +164,143 @@
 	}
 }
 
+body.post-type-apptook_product.apptook-ds-editor-page,
+body.post-type-apptook_product.toplevel_page_apptook-ds-product-editor,
+body.post-type-apptook_product.apptook_product_page_apptook-ds-product-editor {
+	background: #eef2f7;
+}
+
+body.post-type-apptook_product.apptook-ds-editor-page #wpcontent,
+body.post-type-apptook_product.toplevel_page_apptook-ds-product-editor #wpcontent,
+body.post-type-apptook_product.apptook_product_page_apptook-ds-product-editor #wpcontent {
+	padding-left: 14px;
+}
+
+.apptook-ds-custom-editor-wrap {
+	max-width: 1320px;
+	padding: 10px 8px 24px 0;
+}
+
+.apptook-ds-custom-editor-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 18px;
+	gap: 16px;
+	padding: 14px 16px;
+	border: 1px solid #dbe3ef;
+	border-radius: 16px;
+	background: linear-gradient(135deg, #ffffff 0%, #f4faff 100%);
+	box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.apptook-ds-kicker {
+	margin: 0;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .1em;
+	color: #0891b2;
+}
+
+.apptook-ds-custom-editor-wrap h1 {
+	margin: 6px 0 0;
+	font-size: 26px;
+	line-height: 1.2;
+	font-weight: 700;
+	color: #0f172a;
+}
+
+.apptook-ds-header-actions .button-primary {
+	min-height: 40px;
+	padding: 0 18px;
+	border-radius: 12px;
+	font-weight: 700;
+}
+
+.apptook-ds-custom-editor-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
+	gap: 18px;
+}
+
+.apptook-ds-main-col,
+.apptook-ds-side-col {
+	display: grid;
+	gap: 16px;
+	align-content: start;
+}
+
+.apptook-ds-side-col {
+	position: sticky;
+	top: 42px;
+	height: fit-content;
+}
+
+.apptook-ds-custom-editor-layout .apptook-ds-admin-section {
+	border-radius: 16px;
+	border-color: #dbe3ef;
+	padding: 18px;
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.apptook-ds-custom-editor-layout .apptook-ds-admin-section h3 {
+	font-size: 16px;
+	margin-bottom: 10px;
+}
+
+.apptook-ds-custom-editor-layout .apptook-ds-admin-field label {
+	font-size: 13px;
+	color: #0f172a;
+}
+
+.apptook-ds-custom-editor-layout .regular-text,
+.apptook-ds-custom-editor-layout .large-text,
+.apptook-ds-custom-editor-layout select,
+.apptook-ds-custom-editor-layout textarea,
+.apptook-ds-custom-editor-layout input[type="text"],
+.apptook-ds-custom-editor-layout input[type="number"] {
+	width: 100%;
+	max-width: 100%;
+	border-radius: 10px;
+	border-color: #cbd5e1;
+}
+
+.apptook-ds-custom-editor-layout textarea {
+	line-height: 1.45;
+}
+
+.apptook-ds-custom-editor-layout input:focus,
+.apptook-ds-custom-editor-layout select:focus,
+.apptook-ds-custom-editor-layout textarea:focus {
+	border-color: #22d3ee;
+	box-shadow: 0 0 0 1px #22d3ee;
+}
+
+.apptook-ds-image-preview {
+	min-height: 170px;
+	border: 1px dashed #93c5fd;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+	padding: 10px;
+	margin-bottom: 10px;
+}
+
+.apptook-ds-image-preview img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8px;
+}
+
+.apptook-ds-image-preview span {
+	font-size: 12px;
+	font-weight: 600;
+	color: #64748b;
+}
+
 @media (max-width: 782px) {
 	.apptook-ds-admin-section {
 		padding: 12px;
@@ -171,5 +308,18 @@
 
 	.apptook-ds-admin-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.apptook-ds-custom-editor-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.apptook-ds-custom-editor-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.apptook-ds-side-col {
+		position: static;
 	}
 }

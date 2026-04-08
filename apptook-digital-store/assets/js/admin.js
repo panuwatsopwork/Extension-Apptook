@@ -145,7 +145,75 @@
 		syncSource();
 	}
 
+	function mountMediaPicker() {
+		var selectBtn = document.getElementById('apptook-editor-select-image');
+		var removeBtn = document.getElementById('apptook-editor-remove-image');
+		var input = document.getElementById('apptook_editor_thumbnail_id');
+		var preview = document.getElementById('apptook-editor-image-preview');
+		if (!selectBtn || !input || !window.wp || !window.wp.media) return;
+
+		var frame;
+		selectBtn.addEventListener('click', function () {
+			if (!frame) {
+				frame = window.wp.media({
+					title: 'เลือกรูปสินค้า',
+					button: { text: 'ใช้รูปนี้' },
+					multiple: false
+				});
+				frame.on('select', function () {
+					var selection = frame.state().get('selection').first();
+					if (!selection) return;
+					var attachment = selection.toJSON();
+					input.value = attachment.id || '';
+					if (preview && attachment.url) {
+						preview.innerHTML = '<img src="' + attachment.url + '" alt="" style="max-width:220px;height:auto;" />';
+					}
+				});
+			}
+			frame.open();
+		});
+
+		if (removeBtn) {
+			removeBtn.addEventListener('click', function () {
+				input.value = '';
+				if (preview) preview.innerHTML = '<span>ยังไม่ได้เลือกรูป</span>';
+			});
+		}
+	}
+
+	function mountQuickEdit() {
+		var inlineEditPost = window.inlineEditPost;
+		if (!inlineEditPost || !inlineEditPost.edit) return;
+
+		var originalEdit = inlineEditPost.edit;
+		inlineEditPost.edit = function (id) {
+			originalEdit.apply(this, arguments);
+
+			var postId = 0;
+			if (typeof id === 'object') {
+				postId = parseInt(this.getId(id), 10);
+			} else {
+				postId = parseInt(id, 10);
+			}
+			if (!postId) return;
+
+			var editRow = document.getElementById('edit-' + postId);
+			var dataRow = document.getElementById('apptook_inline_' + postId);
+			if (!editRow || !dataRow) return;
+
+			var statusField = editRow.querySelector('select[name="apptook_product_status"]');
+			var saleField = editRow.querySelector('input[name="apptook_sale_price"]');
+			var statusValue = dataRow.querySelector('.apptook_inline_status');
+			var saleValue = dataRow.querySelector('.apptook_inline_sale_price');
+
+			if (statusField && statusValue) statusField.value = statusValue.textContent.trim();
+			if (saleField && saleValue) saleField.value = saleValue.textContent.trim();
+		};
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		document.querySelectorAll('.apptook-ds-table-builder').forEach(mountBuilder);
+		mountMediaPicker();
+		mountQuickEdit();
 	});
 })();

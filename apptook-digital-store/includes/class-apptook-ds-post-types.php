@@ -32,7 +32,7 @@ final class Apptook_DS_Post_Types {
 				'rewrite'             => array('slug' => 'digital-products'),
 				'menu_icon'           => 'dashicons-smartphone',
 				'supports'            => array('title', 'editor', 'thumbnail', 'excerpt'),
-				'taxonomies'          => array('apptook_product_cat'),
+				'taxonomies'          => array('apptook_product_cat', 'post_tag'),
 				'show_in_rest'        => true,
 				'exclude_from_search' => false,
 			)

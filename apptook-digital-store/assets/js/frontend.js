@@ -44,12 +44,11 @@
 				closeModal(overlay);
 			}
 		});
-		var closeBtn = qs('[data-apptook-close]', overlay);
-		if (closeBtn) {
+		overlay.querySelectorAll('[data-apptook-close]').forEach(function (closeBtn) {
 			closeBtn.addEventListener('click', function () {
 				closeModal(overlay);
 			});
-		}
+		});
 		return overlay;
 	}
 
@@ -162,117 +161,267 @@
 	}
 
 	function showPayStep(data) {
-		var qr = '';
-		if (data.qr_image_url) {
-			qr =
-				'<div class="apptook-ds-modal-qr"><img src="' +
-				esc(data.qr_image_url) +
-				'" alt="QR" /></div>';
-		}
-		var note = data.payment_note
-			? '<p class="apptook-ds-modal-note">' + esc(data.payment_note) + '</p>'
-			: '';
-		var pp = data.promptpay_id
-			? '<p class="apptook-ds-modal-note"><strong>พร้อมเพย์:</strong> ' +
-			  esc(data.promptpay_id) +
-			  '</p>'
-			: '';
+		var amountText = esc(String(data.amount || '0'));
+		var promptpayText = data.promptpay_id ? esc(String(data.promptpay_id)) : '-';
+		var referenceText = data.order_ref
+			? esc(String(data.order_ref))
+			: (data.order_id ? 'PMT-' + esc(String(data.order_id)) : '-');
+		var paymentNote = data.payment_note
+			? '<p class="apptook-ds-pay-qr-note">' + esc(String(data.payment_note)) + '</p>'
+			: '<p class="apptook-ds-pay-qr-note">สแกน QR ผ่าน Mobile Banking แล้วอัปโหลดสลิปยืนยันการชำระเงิน</p>';
+		var qrMarkup = data.qr_image_url
+			? '<img src="' + esc(data.qr_image_url) + '" alt="PromptPay QR" />'
+			: '<p class="apptook-ds-pay-qr-note">ไม่พบรูป QR สำหรับการชำระเงิน</p>';
 
 		var html =
-			'<div class="apptook-ds-modal">' +
-			'<h2>' +
-			esc(apptookDS.i18n.payTitle) +
-			'</h2>' +
-			'<p class="apptook-ds-modal-amount">' +
-			esc(String(data.amount)) +
-			' บาท</p>' +
-			pp +
-			qr +
-			note +
-			'<div class="apptook-ds-modal-actions">' +
-			'<button type="button" class="apptook-ds-btn apptook-ds-btn-primary" data-apptook-next-slip>' +
-			esc(apptookDS.i18n.next) +
-			'</button>' +
-			'<button type="button" class="apptook-ds-btn apptook-ds-btn-secondary" data-apptook-close>' +
-			esc(apptookDS.i18n.close) +
-			'</button>' +
-			'</div>' +
-			'<p class="apptook-ds-modal-error" data-apptook-err style="display:none"></p>' +
+			'<div class="apptook-ds-modal apptook-ds-modal--payment">' +
+				'<button type="button" class="apptook-ds-pay-close" data-apptook-close aria-label="ปิด">×</button>' +
+				'<div class="apptook-ds-pay-head">' +
+					'<p class="apptook-ds-pay-head-kicker">SECURE CHECKOUT</p>' +
+					'<h2>พร้อมเพย์ QR Payment</h2>' +
+					'<div class="apptook-ds-pay-badges">' +
+						'<span class="apptook-ds-pay-badge">⚡ ชำระเงินได้ทันที</span>' +
+						'<span class="apptook-ds-pay-badge is-amount">ยอดสุทธิ ' + amountText + ' บาท</span>' +
+					'</div>' +
+				'</div>' +
+				'<div class="apptook-ds-pay-body">' +
+					'<div class="apptook-ds-pay-qr-card">' +
+						'<div class="apptook-ds-pay-qr-title-row">' +
+							'<p class="apptook-ds-pay-qr-title">QR พร้อมเพย์สำหรับชำระเงิน</p>' +
+							'<span class="apptook-ds-pay-qr-ref">Ref: ' + referenceText + '</span>' +
+						'</div>' +
+						'<div class="apptook-ds-pay-qr-wrap">' + qrMarkup + '</div>' +
+						 paymentNote +
+					'</div>' +
+					'<div class="apptook-ds-pay-info-col">' +
+						'<div class="apptook-ds-pay-info-card">' +
+							'<p class="apptook-ds-pay-info-label">ยอดที่ต้องชำระ</p>' +
+							'<p class="apptook-ds-pay-info-value">' + amountText + ' บาท</p>' +
+						'</div>' +
+						'<div class="apptook-ds-pay-info-card">' +
+							'<p class="apptook-ds-pay-info-label">พร้อมเพย์</p>' +
+							'<p class="apptook-ds-pay-info-value is-id">' + promptpayText + '</p>' +
+						'</div>' +
+						'<div class="apptook-ds-pay-info-card">' +
+							'<p class="apptook-ds-pay-info-label">สถานะการชำระ</p>' +
+							'<p class="apptook-ds-pay-info-value is-pending">รอยืนยันสลิป</p>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="apptook-ds-pay-actions">' +
+					'<button type="button" class="apptook-ds-btn apptook-ds-btn-primary" data-apptook-next-slip>อัปโหลดสลิปการโอน</button>' +
+					'<button type="button" class="apptook-ds-btn apptook-ds-btn-secondary" data-apptook-close>' + esc(apptookDS.i18n.close) + '</button>' +
+				'</div>' +
+				'<p class="apptook-ds-modal-error" data-apptook-err style="display:none"></p>' +
 			'</div>';
 
 		var overlay = openModal(html);
 		var errEl = qs('[data-apptook-err]', overlay);
-
-		qs('[data-apptook-next-slip]', overlay).addEventListener('click', function () {
-			closeModal(overlay);
-			showSlipStep(data);
-		});
+		var nextBtn = qs('[data-apptook-next-slip]', overlay);
+		if (nextBtn) {
+			nextBtn.addEventListener('click', function () {
+				closeModal(overlay);
+				showSlipStep(data);
+			});
+		}
 
 		return { overlay: overlay, errEl: errEl };
 	}
 
 	function showSlipStep(data) {
+		var qrMarkup = data && data.qr_image_url
+			? '<img src="' + esc(String(data.qr_image_url)) + '" alt="QR สำหรับอัปโหลดสลิปผ่านมือถือ" />'
+			: '<p class="apptook-ds-slip-qr-empty">ยังไม่มี QR สำหรับแสดงผล</p>';
 		var html =
-			'<div class="apptook-ds-modal">' +
-			'<h2>' +
-			esc(apptookDS.i18n.slipTitle) +
-			'</h2>' +
-			'<p class="apptook-ds-modal-note">' +
-			esc(String(data.amount)) +
-			' บาท · Order #' +
-			esc(String(data.order_id)) +
-			'</p>' +
-			'<input type="file" class="apptook-ds-slip-input" accept="image/jpeg,image/png,image/webp" data-apptook-file />' +
-			'<div class="apptook-ds-modal-qr" data-apptook-preview-wrap style="display:none;min-height:unset;">' +
-			'<img data-apptook-slip-preview alt="Slip preview" />' +
-			'</div>' +
-			'<div class="apptook-ds-modal-actions">' +
-			'<button type="button" class="apptook-ds-btn apptook-ds-btn-primary" data-apptook-send-slip>' +
-			esc(apptookDS.i18n.confirmSlip) +
-			'</button>' +
-			'<button type="button" class="apptook-ds-btn apptook-ds-btn-secondary" data-apptook-close>' +
-			esc(apptookDS.i18n.close) +
-			'</button>' +
-			'</div>' +
-			'<p class="apptook-ds-modal-error" data-apptook-err style="display:none"></p>' +
+			'<div class="apptook-ds-modal apptook-ds-modal--slip">' +
+				'<button type="button" class="apptook-ds-slip-close" data-apptook-close aria-label="ปิด">×</button>' +
+				'<div class="apptook-ds-slip-top">' +
+					'<p class="apptook-ds-slip-kicker">PAYMENT VERIFICATION</p>' +
+					'<h2>อัปโหลดสลิปการโอน</h2>' +
+					'<p class="apptook-ds-slip-subtitle">เลือกโหมดอัปโหลดจากด้านล่าง</p>' +
+				'</div>' +
+				'<div class="apptook-ds-slip-tabs" role="tablist" aria-label="โหมดอัปโหลดสลิป">' +
+					'<button type="button" class="apptook-ds-slip-tab is-active" data-apptook-slip-tab="upload" role="tab" aria-selected="true">ลากไฟล์ปกติ</button>' +
+					'<button type="button" class="apptook-ds-slip-tab" data-apptook-slip-tab="mobile" role="tab" aria-selected="false">อัปโหลดผ่านมือถือ (QR)</button>' +
+				'</div>' +
+				'<div class="apptook-ds-slip-panel is-active" data-apptook-slip-panel="upload">' +
+					'<input type="file" class="apptook-ds-slip-input" accept="image/jpeg,image/png,image/webp" data-apptook-file />' +
+					'<div class="apptook-ds-slip-drop-zone-wrap">' +
+						'<div class="apptook-ds-slip-drop-zone" data-apptook-drop-zone>' +
+							'<span class="material-symbols-outlined" aria-hidden="true">cloud_upload</span>' +
+							'<p class="apptook-ds-slip-drop-title">ลากไฟล์สลิปมาวางที่นี่</p>' +
+							'<p class="apptook-ds-slip-drop-sub">รองรับไฟล์ .jpg, .jpeg, .png สูงสุด 10MB</p>' +
+							'<button type="button" class="apptook-ds-slip-drop-choose" data-apptook-pick-file>Choose file</button>' +
+							'<p class="apptook-ds-slip-file-name" data-apptook-file-name>ยังไม่ได้เลือกไฟล์</p>' +
+							'<div class="apptook-ds-slip-preview" data-apptook-slip-preview-wrap hidden>' +
+								'<img data-apptook-slip-preview alt="Slip preview" />' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="apptook-ds-slip-panel" data-apptook-slip-panel="mobile" hidden>' +
+					'<div class="apptook-ds-slip-mobile-qr-wrap">' +
+						'<p class="apptook-ds-slip-mobile-title">สแกน QR นี้ผ่านมือถือเพื่ออัปโหลดสลิป</p>' +
+						'<div class="apptook-ds-slip-mobile-qr">' + qrMarkup + '</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="apptook-ds-slip-actions">' +
+					'<button type="button" class="apptook-ds-btn apptook-ds-btn-primary" data-apptook-send-slip>' + esc(apptookDS.i18n.confirmSlip) + '</button>' +
+					'<button type="button" class="apptook-ds-btn apptook-ds-btn-secondary" data-apptook-close>' + esc(apptookDS.i18n.close) + '</button>' +
+				'</div>' +
+				'<p class="apptook-ds-modal-error" data-apptook-err style="display:none"></p>' +
 			'</div>';
 
 		var overlay = openModal(html);
+		var legacyPickerBtn = qs('.apptook-ds-slip-picker-btn', overlay);
+		if (legacyPickerBtn && legacyPickerBtn.parentNode) {
+			legacyPickerBtn.parentNode.removeChild(legacyPickerBtn);
+		}
 		var fileInput = qs('[data-apptook-file]', overlay);
 		var errEl = qs('[data-apptook-err]', overlay);
-		var previewWrap = qs('[data-apptook-preview-wrap]', overlay);
+		var fileNameEl = qs('[data-apptook-file-name]', overlay);
+		var previewWrap = qs('[data-apptook-slip-preview-wrap]', overlay);
 		var previewImg = qs('[data-apptook-slip-preview]', overlay);
+		var dropZone = qs('[data-apptook-drop-zone]', overlay);
+		var pickers = overlay.querySelectorAll('[data-apptook-pick-file]');
+		var tabBtns = overlay.querySelectorAll('[data-apptook-slip-tab]');
+		var panels = overlay.querySelectorAll('[data-apptook-slip-panel]');
+		var activeTab = 'upload';
 
-		if (fileInput && previewWrap && previewImg) {
-			fileInput.addEventListener('change', function () {
-				var f = fileInput.files && fileInput.files[0];
-				if (!f) {
-					previewWrap.style.display = 'none';
+		function setActiveTab(tab) {
+			activeTab = tab === 'mobile' ? 'mobile' : 'upload';
+			tabBtns.forEach(function (btn) {
+				var isActive = btn.getAttribute('data-apptook-slip-tab') === activeTab;
+				btn.classList.toggle('is-active', isActive);
+				btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+			});
+			panels.forEach(function (panel) {
+				var isActive = panel.getAttribute('data-apptook-slip-panel') === activeTab;
+				panel.classList.toggle('is-active', isActive);
+				panel.hidden = !isActive;
+			});
+			if (errEl) {
+				errEl.style.display = 'none';
+			}
+		}
+
+		tabBtns.forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				setActiveTab(btn.getAttribute('data-apptook-slip-tab') || 'upload');
+			});
+		});
+
+		function setSelectedFile(file) {
+			if (fileNameEl) {
+				fileNameEl.textContent = file ? file.name : 'ยังไม่ได้เลือกไฟล์';
+			}
+			if (dropZone) {
+				dropZone.classList.toggle('is-selected', !!file);
+				dropZone.classList.toggle('has-preview', !!file);
+			}
+			if (!previewWrap || !previewImg) {
+				return;
+			}
+			if (!file) {
+				previewWrap.hidden = true;
+				previewImg.removeAttribute('src');
+				return;
+			}
+			fileToDataUrl(file).then(function (dataUrl) {
+				if (!dataUrl) {
+					previewWrap.hidden = true;
 					previewImg.removeAttribute('src');
 					return;
 				}
-				fileToDataUrl(f).then(function (dataUrl) {
-					if (!dataUrl) {
-						previewWrap.style.display = 'none';
-						previewImg.removeAttribute('src');
-						return;
-					}
-					previewImg.src = dataUrl;
-					previewWrap.style.display = 'flex';
+				previewImg.src = dataUrl;
+				previewWrap.hidden = false;
+			});
+		}
+
+		function setInputFile(file) {
+			if (!fileInput || !file) {
+				return;
+			}
+			try {
+				var dt = new DataTransfer();
+				dt.items.add(file);
+				fileInput.files = dt.files;
+			} catch (err) {
+				// fallback: some browsers may not allow direct assignment
+			}
+			setSelectedFile(file);
+		}
+
+		if (pickers && pickers.length && fileInput) {
+			pickers.forEach(function (btn) {
+				btn.addEventListener('click', function () {
+					fileInput.click();
 				});
 			});
 		}
 
+		if (fileInput) {
+			fileInput.addEventListener('change', function () {
+				var f = fileInput.files && fileInput.files[0];
+				setSelectedFile(f || null);
+			});
+		}
+
+		if (dropZone) {
+			['dragenter', 'dragover'].forEach(function (name) {
+				dropZone.addEventListener(name, function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					dropZone.classList.add('is-drag-over');
+				});
+			});
+			['dragleave', 'drop'].forEach(function (name) {
+				dropZone.addEventListener(name, function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					dropZone.classList.remove('is-drag-over');
+				});
+			});
+			dropZone.addEventListener('drop', function (e) {
+				var dropped = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+				if (dropped) {
+					setInputFile(dropped);
+				}
+			});
+		}
+
 		qs('[data-apptook-send-slip]', overlay).addEventListener('click', function () {
+			if (activeTab === 'mobile') {
+				errEl.style.display = 'block';
+				errEl.textContent = 'โหมดอัปโหลดผ่าน QR บนมือถือเป็นโหมดแสดงผลเท่านั้นในตอนนี้';
+				return;
+			}
+
 			var f = fileInput.files && fileInput.files[0];
 			if (!f) {
 				errEl.style.display = 'block';
 				errEl.textContent = 'เลือกรูปสลิปก่อน';
 				return;
 			}
+			var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+			if (allowed.indexOf(f.type) === -1) {
+				errEl.style.display = 'block';
+				errEl.textContent = 'รองรับเฉพาะไฟล์ JPG, JPEG, PNG หรือ WEBP';
+				return;
+			}
+			if ((f.size || 0) > 10 * 1024 * 1024) {
+				errEl.style.display = 'block';
+				errEl.textContent = 'ขนาดไฟล์ต้องไม่เกิน 10MB';
+				return;
+			}
 			errEl.style.display = 'none';
 			var fd = new FormData();
-			fd.append('order_id', String(data.order_id));
+			if (data.order_id) {
+				fd.append('order_id', String(data.order_id));
+			}
+			if (data.product_id) {
+				fd.append('product_id', String(data.product_id));
+			}
 			fd.append('nonce', data.upload_nonce);
 			fd.append('slip', f);
 			var btn = qs('[data-apptook-send-slip]', overlay);
@@ -334,89 +483,76 @@
 	function openStitchPurchaseModal(payload) {
 		dlog('openStitchPurchaseModal called', payload);
 		if (!payload || !payload.productId) {
-			dlog('openStitchPurchaseModal aborted: invalid payload');
 			return;
 		}
 
-		if (window.__apptookPurchaseModalLock) {
-			dlog('openStitchPurchaseModal blocked by lock');
-			return;
-		}
-		window.__apptookPurchaseModalLock = true;
-		dlog('purchase modal lock on');
-		setTimeout(function () {
-			window.__apptookPurchaseModalLock = false;
-			dlog('purchase modal lock off');
-		}, 120);
-
-		var existingOverlays = document.querySelectorAll('.apptook-st-purchase-overlay');
-		dlog('existing overlays before remove', existingOverlays.length);
-		existingOverlays.forEach(function (existing) {
+		document.querySelectorAll('.apptook-st-purchase-overlay').forEach(function (existing) {
 			existing.remove();
 		});
 
 		var title = payload.productName || 'Product';
-		var price = payload.priceText || '';
 		var iconHtml = payload.iconHtml || '<span class="material-symbols-outlined">inventory_2</span>';
 		var durations = Array.isArray(payload.durations) ? payload.durations : [];
 		var types = Array.isArray(payload.types) ? payload.types : [];
 		var hasType = !!payload.typeEnabled && types.length > 0;
-		var hasDuration = !!payload.durationEnabled && durations.length > 0;
 
-		if (!hasDuration) {
+		if (!durations.length) {
 			durations = [{ months: 1, price: 0, is_default: 1 }];
 		}
 
 		var hasDurationDefault = durations.some(function (d) {
 			return String(d && d.is_default ? d.is_default : '0') === '1';
 		});
-		var chipsHtml = durations.map(function (d, i) {
+
+		var durationHtml = durations.map(function (d, i) {
 			var months = parseInt(d.months || '1', 10);
-			var isDefault = String(d.is_default || '0') === '1';
-			var active = hasDurationDefault ? (isDefault ? ' is-active' : '') : (i === 0 ? ' is-active' : '');
-			return '<button type="button" class="apptook-st-duration-chip' + active + '" data-months="' + esc(String(months)) + '" data-price="' + esc(String(d.price || '0')) + '">' + esc(String(months)) + ' month' + (months > 1 ? 's' : '') + '</button>';
+			var isDefault = hasDurationDefault ? String(d.is_default || '0') === '1' : i === 0;
+			return '<button type="button" class="duration-chip' + (isDefault ? ' chip-active' : '') + '" data-months="' + esc(String(months)) + '" data-price="' + esc(String(d.price || '0')) + '"><span class="month-title">' + esc(String(months)) + ' month</span></button>';
 		}).join('');
 
-		var typeHtml = '';
-		if (hasType) {
-			var hasTypeDefault = types.some(function (t) {
-				return String(t && t.is_default ? t.is_default : '0') === '1';
-			});
-			var options = types.map(function (t, i) {
+		var hasTypeDefault = types.some(function (t) {
+			return String(t && t.is_default ? t.is_default : '0') === '1';
+		});
+
+		var typeChipsHtml = hasType
+			? types.map(function (t, i) {
 				var label = t.type_label || t.type_key || ('Type ' + (i + 1));
-				var isDefaultType = String(t.is_default || '0') === '1';
-				var selected = hasTypeDefault ? (isDefaultType ? ' selected' : '') : (i === 0 ? ' selected' : '');
-				return '<option value="' + esc(String(t.type_key || '')) + '" data-modifier="' + esc(String(t.price_modifier || '0')) + '"' + selected + '>' + esc(String(label)) + '</option>';
-			}).join('');
-			typeHtml = '<label class="apptook-st-purchase-label">Select Type</label><select class="apptook-st-purchase-select" data-apptook-purchase-type>' + options + '</select>';
-		}
+				var isDefaultType = hasTypeDefault ? String(t.is_default || '0') === '1' : i === 0;
+				return '<button type="button" class="modal-choice-btn' + (isDefaultType ? ' is-active' : '') + '" data-choice="account" data-type-key="' + esc(String(t.type_key || '')) + '" data-modifier="' + esc(String(t.price_modifier || '0')) + '">' + esc(String(label)) + '</button>';
+			}).join('')
+			: '<button type="button" class="modal-choice-btn is-active" data-choice="account" data-type-key="default" data-modifier="0">1 Profile (Shared)</button>';
 
-		var durationHtml = '';
-		if (hasDuration) {
-			durationHtml = '<label class="apptook-st-purchase-label">Purchase months</label>' +
-				'<div class="apptook-st-purchase-chip-grid">' + chipsHtml + '</div>';
-		}
-
-		var html =
+		var html = '' +
 			'<div class="apptook-st-purchase-overlay" role="dialog" aria-modal="true">' +
-			'<div class="apptook-st-purchase-modal">' +
-			'<button type="button" class="apptook-st-purchase-close" data-apptook-close><span class="material-symbols-outlined">close</span></button>' +
-			'<div class="apptook-st-purchase-head">' +
-			'<div class="apptook-st-purchase-head-left">' +
-			'<div class="apptook-st-purchase-icon">' + iconHtml + '</div>' +
-			'<div><h3 class="apptook-st-purchase-title">' + esc(title) + '</h3><p class="apptook-st-purchase-sub">Premium Subscription</p></div>' +
-			'</div>' +
-			'<div class="apptook-st-purchase-head-right"><div class="apptook-st-purchase-price" data-apptook-live-price>' + esc(price || '-') + '</div><div class="apptook-st-purchase-price-sub" data-apptook-live-price-sub>' + esc(price || '-') + ' / month</div></div>' +
-			'</div>' +
-			'<div class="apptook-st-purchase-body">' +
-			durationHtml +
-			typeHtml +
-			'<div class="apptook-st-purchase-actions">' +
-			'<button type="button" class="apptook-st-purchase-cancel" data-apptook-close>Cancel</button>' +
-			'<button type="button" class="apptook-st-purchase-confirm">Go to payment <span class="material-symbols-outlined">arrow_forward</span></button>' +
-			'</div>' +
-			'</div>' +
-			'</div>' +
+				'<div class="apptook-st-purchase-modal">' +
+					'<button type="button" class="apptook-st-purchase-close" data-apptook-close><span class="material-symbols-outlined">close</span></button>' +
+					'<div class="apptook-st-purchase-top">' +
+						'<div class="apptook-st-purchase-top-row">' +
+							'<div class="apptook-st-purchase-icon">' + iconHtml + '</div>' +
+							'<div class="apptook-st-purchase-top-main">' +
+								'<div class="apptook-st-purchase-price-wrap">' +
+									'<h3 class="apptook-st-purchase-price-value" data-apptook-live-price>฿0.00</h3>' +
+									'<p class="apptook-st-purchase-price-month" data-apptook-live-price-sub>฿0.00 / month</p>' +
+								'</div>' +
+								'<p class="apptook-st-purchase-product-name" data-apptook-title>' + esc(title) + '</p>' +
+								'<p class="apptook-st-purchase-account-hint">Shared Account</p>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+					'<div class="apptook-st-purchase-body">' +
+						'<div class="apptook-st-purchase-card">' +
+							'<p class="apptook-st-purchase-card-title">เลือกแพ็กเกจที่ต้องการ</p>' +
+							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">เลือกระยะเวลา</p><div class="apptook-st-chip-row" data-apptook-month-grid>' + durationHtml + '</div></div>' +
+							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ประเภทบัญชี</p><div class="apptook-st-chip-row" data-apptook-type-grid>' + typeChipsHtml + '</div></div>' +
+							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ตัวเลือกสินค้า</p><div class="apptook-st-chip-row" data-apptook-product-grid><button type="button" class="modal-choice-btn is-active" data-choice="product">Standard</button><button type="button" class="modal-choice-btn" data-choice="product">Plus</button></div></div>' +
+							'<div class="apptook-st-promo"><button type="button" class="apptook-st-promo-toggle" data-apptook-promo-toggle><span>Have a Promo Code or Coupon?</span><span class="material-symbols-outlined" data-apptook-promo-icon>expand_more</span></button><div class="apptook-st-promo-panel hidden" data-apptook-promo-panel><div class="apptook-st-promo-row"><input class="apptook-st-promo-input" placeholder="Enter promo code" type="text"/><button type="button" class="apptook-st-promo-apply">Apply</button></div></div></div>' +
+						'</div>' +
+					'</div>' +
+					'<div class="apptook-st-purchase-actions">' +
+						'<button type="button" class="apptook-st-purchase-cancel" data-apptook-close>Cancel</button>' +
+						'<button type="button" class="apptook-st-purchase-confirm">Go to payment</button>' +
+					'</div>' +
+				'</div>' +
 			'</div>';
 
 		var wrap = document.createElement('div');
@@ -424,73 +560,97 @@
 		var overlay = wrap.firstChild;
 		document.body.appendChild(overlay);
 
-		overlay.style.position = 'fixed';
-		overlay.style.top = '0';
-		overlay.style.right = '0';
-		overlay.style.bottom = '0';
-		overlay.style.left = '0';
-		overlay.style.inset = '0';
-		overlay.style.width = '100vw';
-		overlay.style.height = '100vh';
-		overlay.style.margin = '0';
-		overlay.style.display = 'flex';
-		overlay.style.alignItems = 'center';
-		overlay.style.justifyContent = 'center';
-		overlay.style.zIndex = '2147483647';
+		function getActiveDuration() {
+			var activeChip = overlay.querySelector('.duration-chip.chip-active');
+			if (!activeChip) {
+				return { months: 1, base: 0 };
+			}
+			return {
+				months: parseInt(activeChip.getAttribute('data-months') || '1', 10) || 1,
+				base: parseFloat(activeChip.getAttribute('data-price') || '0') || 0,
+			};
+		}
 
-		dlog('purchase overlay appended', {
-			currentOverlayCount: document.querySelectorAll('.apptook-st-purchase-overlay').length,
-			productId: payload.productId
-		});
+		function getActiveTypeModifier() {
+			var activeType = overlay.querySelector('.modal-choice-btn[data-choice="account"].is-active');
+			if (!activeType) {
+				return 0;
+			}
+			return parseFloat(activeType.getAttribute('data-modifier') || '0') || 0;
+		}
+
+		function formatTHB(value) {
+			return '฿' + Number(value || 0).toFixed(2);
+		}
+
+		function updateLivePrice() {
+			var activeDuration = getActiveDuration();
+			var modifier = getActiveTypeModifier();
+			var monthly = activeDuration.base + modifier;
+			var total = monthly * activeDuration.months;
+			var priceEl = overlay.querySelector('[data-apptook-live-price]');
+			var subEl = overlay.querySelector('[data-apptook-live-price-sub]');
+			if (priceEl) priceEl.textContent = formatTHB(total);
+			if (subEl) subEl.textContent = formatTHB(monthly) + ' / month';
+		}
 
 		overlay.addEventListener('click', function (e) {
 			if (e.target === overlay || e.target.closest('[data-apptook-close]')) {
 				overlay.remove();
+				return;
 			}
-		});
 
-		function updateLivePrice() {
-			var activeChip = overlay.querySelector('.apptook-st-duration-chip.is-active');
-			if (!activeChip) return;
-			var base = parseFloat(activeChip.getAttribute('data-price') || '0') || 0;
-			var modifier = 0;
-			var typeSelect = overlay.querySelector('[data-apptook-purchase-type]');
-			if (typeSelect) {
-				var selected = typeSelect.options[typeSelect.selectedIndex];
-				if (selected) {
-					modifier = parseFloat(selected.getAttribute('data-modifier') || '0') || 0;
-				}
-			}
-			var total = base + modifier;
-			var text = '฿' + total.toFixed(2);
-			var priceEl = overlay.querySelector('[data-apptook-live-price]');
-			var subEl = overlay.querySelector('[data-apptook-live-price-sub]');
-			if (priceEl) priceEl.textContent = text;
-			if (subEl) subEl.textContent = text + ' / month';
-		}
-
-		overlay.querySelectorAll('.apptook-st-duration-chip').forEach(function (chip) {
-			chip.addEventListener('click', function () {
-				overlay.querySelectorAll('.apptook-st-duration-chip').forEach(function (c) {
-					c.classList.remove('is-active');
+			var durationBtn = e.target.closest('.duration-chip');
+			if (durationBtn) {
+				overlay.querySelectorAll('.duration-chip').forEach(function (chip) {
+					chip.classList.remove('chip-active');
 				});
-				chip.classList.add('is-active');
+				durationBtn.classList.add('chip-active');
 				updateLivePrice();
-			});
-		});
+				return;
+			}
 
-		var typeSelect = overlay.querySelector('[data-apptook-purchase-type]');
-		if (typeSelect) {
-			typeSelect.addEventListener('change', updateLivePrice);
-		}
-		updateLivePrice();
+			var typeBtn = e.target.closest('.modal-choice-btn[data-choice="account"]');
+			if (typeBtn) {
+				overlay.querySelectorAll('.modal-choice-btn[data-choice="account"]').forEach(function (btn) {
+					btn.classList.remove('is-active');
+				});
+				typeBtn.classList.add('is-active');
+				updateLivePrice();
+				return;
+			}
+
+			var productBtn = e.target.closest('.modal-choice-btn[data-choice="product"]');
+			if (productBtn) {
+				overlay.querySelectorAll('.modal-choice-btn[data-choice="product"]').forEach(function (btn) {
+					btn.classList.remove('is-active');
+				});
+				productBtn.classList.add('is-active');
+				return;
+			}
+
+			var promoToggle = e.target.closest('[data-apptook-promo-toggle]');
+			if (promoToggle) {
+				var panel = overlay.querySelector('[data-apptook-promo-panel]');
+				var icon = overlay.querySelector('[data-apptook-promo-icon]');
+				if (panel) {
+					var open = panel.classList.contains('hidden');
+					panel.classList.toggle('hidden');
+					if (icon) icon.textContent = open ? 'expand_less' : 'expand_more';
+				}
+				return;
+			}
+		});
 
 		var confirmBtn = overlay.querySelector('.apptook-st-purchase-confirm');
-		confirmBtn.addEventListener('click', function () {
-			dlog('purchase confirm clicked', { productId: payload.productId });
-			overlay.remove();
-			startOrderFlow(payload.productId, payload.triggerBtn || null);
-		});
+		if (confirmBtn) {
+			confirmBtn.addEventListener('click', function () {
+				overlay.remove();
+				startOrderFlow(payload.productId, payload.triggerBtn || null);
+			});
+		}
+
+		updateLivePrice();
 	}
 
 	window.ApptookDS = window.ApptookDS || {};
@@ -508,30 +668,67 @@
 		openStitchPurchaseModal(detail);
 	});
 
-	document.addEventListener('change', function (e) {
-		var pdTypeSelect = e.target.closest('[data-pd-type-select]');
-		if (!pdTypeSelect) {
-			return;
-		}
-		var pdWrap = pdTypeSelect.closest('.apptook-ds-pd-purchase-card') || document;
-		var pdBuyBtn = pdWrap.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
-		if (pdBuyBtn) {
-			pdBuyBtn.setAttribute('data-pd-selected-type', pdTypeSelect.value || '');
-		}
+	document.addEventListener('change', function () {
+		// kept intentionally for backward compatibility if legacy select returns
 	});
 
 	document.addEventListener('click', function (e) {
 		var pdDurationBtn = e.target.closest('.apptook-ds-pd-duration-pill[data-pd-month]');
 		if (pdDurationBtn) {
 			e.preventDefault();
-			var pdWrap = pdDurationBtn.closest('.apptook-ds-pd-purchase-card') || document;
-			pdWrap.querySelectorAll('.apptook-ds-pd-duration-pill[data-pd-month]').forEach(function (pill) {
+			var pdMainWrap = pdDurationBtn.closest('.apptook-ds-pd-main') || document;
+			pdMainWrap.querySelectorAll('.apptook-ds-pd-duration-pill[data-pd-month]').forEach(function (pill) {
 				pill.classList.remove('is-active');
 			});
 			pdDurationBtn.classList.add('is-active');
-			var pdBuyBtn = pdWrap.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+			var pdBuyBtn = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
 			if (pdBuyBtn) {
 				pdBuyBtn.setAttribute('data-pd-selected-month', pdDurationBtn.getAttribute('data-pd-month') || '');
+			}
+			return;
+		}
+
+		var pdAccountBtn = e.target.closest('.apptook-ds-pd-choice-btn[data-pd-account-choice]');
+		if (pdAccountBtn) {
+			e.preventDefault();
+			var accountWrap = pdAccountBtn.closest('[data-pd-account-choice-grid]') || document;
+			accountWrap.querySelectorAll('.apptook-ds-pd-choice-btn[data-pd-account-choice]').forEach(function (btn) {
+				btn.classList.remove('is-active');
+			});
+			pdAccountBtn.classList.add('is-active');
+			var pdBuyBtnType = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+			if (pdBuyBtnType) {
+				pdBuyBtnType.setAttribute('data-pd-selected-type', pdAccountBtn.getAttribute('data-type-key') || '');
+			}
+			return;
+		}
+
+		var pdProductBtn = e.target.closest('.apptook-ds-pd-choice-btn[data-pd-product-choice]');
+		if (pdProductBtn) {
+			e.preventDefault();
+			var productWrap = pdProductBtn.closest('[data-pd-product-choice-grid]') || document;
+			productWrap.querySelectorAll('.apptook-ds-pd-choice-btn[data-pd-product-choice]').forEach(function (btn) {
+				btn.classList.remove('is-active');
+			});
+			pdProductBtn.classList.add('is-active');
+			return;
+		}
+
+		var pdPromoToggle = e.target.closest('[data-pd-promo-toggle]');
+		if (pdPromoToggle) {
+			e.preventDefault();
+			var panel = document.querySelector('[data-pd-promo-panel]');
+			var icon = document.querySelector('[data-pd-promo-icon]');
+			if (panel) {
+				var isHidden = panel.hasAttribute('hidden');
+				if (isHidden) {
+					panel.removeAttribute('hidden');
+				} else {
+					panel.setAttribute('hidden', 'hidden');
+				}
+				if (icon) {
+					icon.textContent = isHidden ? 'expand_less' : 'expand_more';
+				}
 			}
 			return;
 		}

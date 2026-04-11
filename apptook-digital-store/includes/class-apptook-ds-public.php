@@ -26,8 +26,13 @@ final class Apptook_DS_Public {
 		add_shortcode('apptook_library', array($this, 'shortcode_library'));
 		add_shortcode('apptook_order_history', array($this, 'shortcode_order_history'));
 		add_shortcode('apptook_register', array($this, 'shortcode_register'));
+		add_shortcode('apptook_blog', array($this, 'shortcode_blog'));
 		add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
+		add_action('template_redirect', array($this, 'maybe_render_mobile_verify_page'));
 		add_filter('single_template', array($this, 'single_product_template'));
+		add_filter('template_include', array($this, 'blog_index_template'), 20);
+		add_action('init', array($this, 'register_blog_rewrite_rule'));
+		add_filter('query_vars', array($this, 'register_blog_query_vars'));
 		add_filter('registration_redirect', array($this, 'filter_registration_redirect'), 100, 2);
 		add_action('login_init', array($this, 'maybe_handle_google_routes'), 0);
 		add_action('login_init', array($this, 'redirect_registered_checkemail_to_themed_page'), 1);
@@ -633,13 +638,86 @@ final class Apptook_DS_Public {
 		}
 	}
 
+	public function maybe_render_mobile_verify_page(): void {
+		$flag_get = isset($_GET['apptook_mobile_verify']) ? sanitize_text_field(wp_unslash((string) $_GET['apptook_mobile_verify'])) : '';
+		$flag_qv = (string) get_query_var('apptook_mobile_verify', '');
+		$is_mobile_verify = ($flag_get === '1' || $flag_qv === '1');
+		if (! $is_mobile_verify) {
+			return;
+		}
+		$token_raw = (string) get_query_var('verify_token', '');
+		if ($token_raw === '' && isset($_GET['verify_token'])) {
+			$token_raw = (string) wp_unslash((string) $_GET['verify_token']);
+		}
+		$token = sanitize_text_field($token_raw);
+		if ($token === '') {
+			wp_die(esc_html__('ลิงก์ไม่ถูกต้อง', 'apptook-digital-store'));
+		}
+		if (function_exists('nocache_headers')) {
+			nocache_headers();
+		}
+		$verify = get_transient('apptook_ds_verify_token_' . $token);
+		$session_token = is_array($verify) && isset($verify['session_token']) ? (string) $verify['session_token'] : '';
+		$session = $session_token !== '' ? get_transient('apptook_ds_mobile_session_' . $session_token) : array();
+		$valid = is_array($session) && ! empty($session);
+		if (! $valid) {
+			status_header(403);
+			echo '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Invalid link</title></head><body style="font-family:Kanit,sans-serif;padding:24px;background:#f3f7fb;color:#16324a"><h2>ลิงก์อัปโหลดหมดอายุหรือไม่ถูกต้อง</h2><p>กรุณากลับไปที่หน้าคอมพิวเตอร์เพื่อสร้าง QR ใหม่</p></body></html>';
+			exit;
+		}
+		$product_id = isset($session['product_id']) ? (int) $session['product_id'] : 0;
+		$product_name = $product_id > 0 ? get_the_title($product_id) : __('รายการสั่งซื้อ', 'apptook-digital-store');
+		$ajax_url = admin_url('admin-ajax.php');
+		header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
+		echo '<!doctype html><html><head><meta charset="' . esc_attr(get_bloginfo('charset')) . '" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__('Mobile Slip Upload', 'apptook-digital-store') . '</title><style>body{font-family:Kanit,sans-serif;background:#eef4fa;margin:0;padding:16px;color:#153047}.box{max-width:480px;margin:0 auto;background:#fff;border:1px solid #d8e6f1;border-radius:14px;padding:18px}.btn{width:100%;height:48px;border:0;border-radius:12px;background:#1f6ea3;color:#fff;font-size:18px;font-family:Kanit,sans-serif;font-weight:700}.input{width:100%;padding:12px;border:1px solid #c7d8e6;border-radius:10px}.msg{margin-top:12px;font-size:14px}.ok{color:#0d7f3f}.err{color:#c62828}</style></head><body><div class="box"><h2 style="margin:0 0 8px">อัปโหลดสลิปผ่านมือถือ</h2><p style="margin:0 0 16px;color:#53708a">รายการ: ' . esc_html((string) $product_name) . '</p><input id="apptook-mobile-slip" class="input" type="file" accept="image/jpeg,image/png,image/webp" /><button id="apptook-mobile-upload" class="btn" type="button" style="margin-top:12px">อัปโหลดสลิป</button><p id="apptook-mobile-msg" class="msg"></p></div><script>(function(){var btn=document.getElementById("apptook-mobile-upload");var input=document.getElementById("apptook-mobile-slip");var msg=document.getElementById("apptook-mobile-msg");btn.addEventListener("click",function(){var f=input.files&&input.files[0];if(!f){msg.className="msg err";msg.textContent="กรุณาเลือกไฟล์สลิป";return;}var allow=["image/jpeg","image/png","image/webp"];if(allow.indexOf(f.type)===-1){msg.className="msg err";msg.textContent="รองรับเฉพาะ JPG, PNG, WEBP";return;}if((f.size||0)>5*1024*1024){msg.className="msg err";msg.textContent="ขนาดไฟล์ต้องไม่เกิน 5MB";return;}var fd=new FormData();fd.append("action","apptook_ds_mobile_upload_slip");fd.append("verify_token",' . wp_json_encode($token) . ');fd.append("slip",f);btn.disabled=true;btn.textContent="กำลังอัปโหลด...";fetch(' . wp_json_encode($ajax_url) . ',{method:"POST",credentials:"same-origin",body:fd}).then(function(r){return r.json();}).then(function(res){if(!res.success){throw new Error((res.data&&res.data.message)||"อัปโหลดไม่สำเร็จ");}msg.className="msg ok";msg.textContent=(res.data&&res.data.message)||"อัปโหลดสำเร็จ กรุณากลับไปที่คอมเพื่อกดยืนยัน";btn.textContent="อัปโหลดแล้ว";}).catch(function(err){msg.className="msg err";msg.textContent=err&&err.message?err.message:"อัปโหลดไม่สำเร็จ";btn.disabled=false;btn.textContent="อัปโหลดสลิป";});});})();</script></body></html>';
+		exit;
+	}
+
 	public function single_product_template( $template ) {
-		if (is_singular('apptook_product')) {
+		if ( is_singular( 'apptook_product' ) ) {
 			$plugin_template = APPTOOK_DS_PATH . 'templates/single-apptook_product.php';
-			if (is_readable($plugin_template)) {
+			if ( is_readable( $plugin_template ) ) {
 				return $plugin_template;
 			}
 		}
+
+		if ( is_singular( 'post' ) ) {
+			$plugin_template = APPTOOK_DS_PATH . 'templates/blog-single.php';
+			if ( is_readable( $plugin_template ) ) {
+				return $plugin_template;
+			}
+		}
+
+		return is_string( $template ) ? $template : '';
+	}
+
+	public function register_blog_rewrite_rule(): void {
+		add_rewrite_rule( '^blog/?$', 'index.php?apptook_ds_blog_index=1', 'top' );
+		add_rewrite_rule( '^apptook-mobile-verify/([^/]+)/?$', 'index.php?apptook_mobile_verify=1&verify_token=$matches[1]', 'top' );
+	}
+
+	/**
+	 * @param array<int,string> $vars
+	 * @return array<int,string>
+	 */
+	public function register_blog_query_vars( array $vars ): array {
+		$vars[] = 'apptook_ds_blog_index';
+		$vars[] = 'apptook_mobile_verify';
+		$vars[] = 'verify_token';
+		return $vars;
+	}
+
+	public function blog_index_template( $template ) {
+		$is_apptook_blog = get_query_var( 'apptook_ds_blog_index', '' ) === '1';
+		if ( $is_apptook_blog || is_home() || is_post_type_archive( 'post' ) || is_category() || is_tag() || is_author() || is_date() || is_page( 'blog' ) ) {
+			$plugin_template = APPTOOK_DS_PATH . 'templates/blog-index.php';
+			if ( is_readable( $plugin_template ) ) {
+				status_header( 200 );
+				nocache_headers();
+				return $plugin_template;
+			}
+		}
+
 		return is_string( $template ) ? $template : '';
 	}
 
@@ -683,9 +761,24 @@ final class Apptook_DS_Public {
 	}
 
 	private function should_load_assets(): bool {
-		if (is_singular('apptook_product')) {
+		if (is_singular('apptook_product') || is_singular('post')) {
 			return true;
 		}
+
+		$is_blog_shell = (
+			get_query_var('apptook_ds_blog_index', '') === '1'
+			|| is_home()
+			|| is_post_type_archive('post')
+			|| is_category()
+			|| is_tag()
+			|| is_author()
+			|| is_date()
+			|| is_page('blog')
+		);
+		if ($is_blog_shell) {
+			return true;
+		}
+
 		global $post;
 		if ($post instanceof WP_Post && has_shortcode($post->post_content, 'apptook_library')) {
 			return true;
@@ -694,6 +787,9 @@ final class Apptook_DS_Public {
 			return true;
 		}
 		if ($post instanceof WP_Post && has_shortcode($post->post_content, 'apptook_register')) {
+			return true;
+		}
+		if ($post instanceof WP_Post && has_shortcode($post->post_content, 'apptook_blog')) {
 			return true;
 		}
 		if ($this->should_load_marketplace_assets()) {
@@ -715,9 +811,21 @@ final class Apptook_DS_Public {
 		$load_reg_skin = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_register' );
 		$load_library = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_library' );
 		$load_order_history = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_order_history' );
+		$load_blog = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_blog' );
+		$load_blog_route = (
+			get_query_var('apptook_ds_blog_index', '') === '1'
+			|| is_home()
+			|| is_post_type_archive('post')
+			|| is_category()
+			|| is_tag()
+			|| is_author()
+			|| is_date()
+			|| is_page('blog')
+		);
 		$load_simple_shop = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_shop' ) && $this->current_shop_layout() === 'simple';
 		$load_single_product = is_singular('apptook_product');
-		$load_global_shell = $load_mkt || $load_reg_skin || $load_library || $load_order_history || $load_simple_shop || $load_single_product;
+		$load_single_post = is_singular('post');
+		$load_global_shell = $load_mkt || $load_reg_skin || $load_library || $load_order_history || $load_blog || $load_blog_route || $load_simple_shop || $load_single_product || $load_single_post;
 
 		$frontend_css_ver = (string) filemtime( APPTOOK_DS_PATH . 'assets/css/frontend.css' );
 		$marketplace_css_ver = (string) filemtime( APPTOOK_DS_PATH . 'assets/css/marketplace.css' );
@@ -781,7 +889,7 @@ final class Apptook_DS_Public {
 					'loginRequired' => __('กรุณาเข้าสู่ระบบก่อนซื้อ', 'apptook-digital-store'),
 					'uploading'     => __('กำลังอัปโหลด...', 'apptook-digital-store'),
 					'error'         => __('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง', 'apptook-digital-store'),
-					'next'          => __('ดำเนินการต่อ — อัปโหลดสลิป', 'apptook-digital-store'),
+					'next'          => __('อัปโหลดสลิป', 'apptook-digital-store'),
 					'payTitle'      => __('ชำระด้วยพร้อมเพย์', 'apptook-digital-store'),
 					'slipTitle'     => __('อัปโหลดสลิปการโอน', 'apptook-digital-store'),
 					'confirmSlip'   => __('ส่งสลิป', 'apptook-digital-store'),
@@ -841,6 +949,7 @@ final class Apptook_DS_Public {
 		$register_url = $this->get_register_page_url();
 		$current_user = wp_get_current_user();
 		$login_url    = add_query_arg( 'apptook_open_login', '1', $shop_url );
+		$ticker_items = $this->get_buyer_ticker_items();
 
 		ob_start();
 		?>
@@ -912,6 +1021,22 @@ final class Apptook_DS_Public {
 				<a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'Support', 'apptook-digital-store' ); ?></a>
 			</div>
 		</nav>
+		<?php if ( $ticker_items !== array() ) : ?>
+			<div class="buyer-ticker-track py-2" aria-label="<?php esc_attr_e( 'ออเดอร์ล่าสุด', 'apptook-digital-store' ); ?>">
+				<div class="buyer-ticker-track__inner" role="presentation">
+					<?php foreach ( array( 1, 2 ) as $loop_idx ) : ?>
+						<?php foreach ( $ticker_items as $item ) : ?>
+							<span class="buyer-ticker-track__item">
+								<span class="buyer-ticker-track__buyer"><?php echo esc_html( (string) $item['buyer'] ); ?></span>
+								<span class="buyer-ticker-track__action"><?php esc_html_e( 'ซื้อ', 'apptook-digital-store' ); ?></span>
+								<span class="buyer-ticker-track__product"><?php echo esc_html( (string) $item['product'] ); ?></span>
+								<span class="buyer-ticker-track__time"><?php echo esc_html( (string) $item['time_ago'] ); ?></span>
+							</span>
+						<?php endforeach; ?>
+					<?php endforeach; ?>
+				</div>
+			</div>
+		<?php endif; ?>
 		<?php
 
 		return (string) ob_get_clean();
@@ -1381,6 +1506,14 @@ final class Apptook_DS_Public {
 	}
 
 	private function get_order_history_page_url(): string {
+		$page_id = (int) get_option( 'apptook_ds_page_order_history_id', 0 );
+		if ( $page_id > 0 ) {
+			$url = get_permalink( $page_id );
+			if ( is_string( $url ) && $url !== '' ) {
+				return $url;
+			}
+		}
+
 		$page = get_page_by_path( 'my-order-history', OBJECT, 'page' );
 		if ( $page instanceof WP_Post && $page->post_status === 'publish' ) {
 			$url = get_permalink( $page );
@@ -1390,6 +1523,100 @@ final class Apptook_DS_Public {
 		}
 
 		return add_query_arg( 'apptook_tab', 'history', $this->get_page_url_by_option( 'apptook_ds_page_library_id' ) );
+	}
+
+	/**
+	 * @return list<array{buyer:string,product:string,time_ago:string}>
+	 */
+	private function get_buyer_ticker_items(): array {
+		$query = new WP_Query(
+			array(
+				'post_type'        => 'apptook_order',
+				'post_status'      => 'publish',
+				'posts_per_page'   => 10,
+				'suppress_filters' => true,
+				'meta_query'       => array(
+					array(
+						'key'   => '_apptook_status',
+						'value' => Apptook_DS_Post_Types::ORDER_PAID,
+					),
+				),
+				'orderby'          => 'date',
+				'order'            => 'DESC',
+			)
+		);
+
+		$items = array();
+
+		if ( $query instanceof WP_Query && $query->have_posts() ) {
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$order_id = get_the_ID();
+				$product_id = (int) get_post_meta( $order_id, '_apptook_product_id', true );
+				$product_name = $product_id > 0 ? get_the_title( $product_id ) : __( 'Unknown Product', 'apptook-digital-store' );
+				$customer_id = (int) get_post_meta( $order_id, '_apptook_customer_id', true );
+				$buyer = __( 'guest***', 'apptook-digital-store' );
+				if ( $customer_id > 0 ) {
+					$user = get_userdata( $customer_id );
+					if ( $user instanceof WP_User ) {
+						$username = trim( (string) $user->user_login );
+						if ( $username === '' && is_string( $user->display_name ) ) {
+							$username = trim( (string) $user->display_name );
+						}
+						if ( $username === '' && is_string( $user->user_email ) ) {
+							$email = trim( strtolower( $user->user_email ) );
+							$parts = explode( '@', $email );
+							$username = isset( $parts[0] ) ? trim( (string) $parts[0] ) : '';
+						}
+						if ( $username !== '' ) {
+							$local_mask = strlen( $username ) > 5 ? substr( $username, 0, 5 ) : $username;
+							$buyer = $local_mask . '***';
+						}
+					}
+				}
+
+				$diff = max( 60, (int) ( current_time( 'timestamp', true ) - get_post_time( 'U', true, $order_id ) ) );
+				$minutes = (int) floor( $diff / 60 );
+				$hours = (int) floor( $diff / 3600 );
+				$days = (int) floor( $diff / 86400 );
+				if ( $minutes < 60 ) {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d นาทีที่แล้ว', 'apptook-digital-store' ), $minutes );
+				} elseif ( $hours < 24 ) {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d ชั่วโมงที่แล้ว', 'apptook-digital-store' ), $hours );
+				} else {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d วันที่แล้ว', 'apptook-digital-store' ), $days );
+				}
+
+				$items[] = array(
+					'buyer' => $buyer,
+					'product' => is_string( $product_name ) ? $product_name : __( 'Unknown Product', 'apptook-digital-store' ),
+					'time_ago' => $time_ago,
+				);
+			}
+			wp_reset_postdata();
+		}
+
+		if ( $items === array() ) {
+			return array(
+				array(
+					'buyer' => 'mikuscz1***',
+					'product' => 'Cursor AI',
+					'time_ago' => __( 'ซื้อเมื่อ 1 นาทีที่แล้ว', 'apptook-digital-store' ),
+				),
+				array(
+					'buyer' => 'kokostu***',
+					'product' => 'Windsurf',
+					'time_ago' => __( 'ซื้อเมื่อ 1 ชั่วโมงที่แล้ว', 'apptook-digital-store' ),
+				),
+				array(
+					'buyer' => 'ais***',
+					'product' => 'ChatGPT Plus',
+					'time_ago' => __( 'ซื้อเมื่อ 1 วันที่แล้ว', 'apptook-digital-store' ),
+				),
+			);
+		}
+
+		return $items;
 	}
 
 	private function render_product_card( int $post_id ): string {
@@ -1424,6 +1651,8 @@ final class Apptook_DS_Public {
 		if ( $price_display !== '' && strpos( $price_display, '฿' ) !== 0 && strpos( $price_display, 'THB' ) === false ) {
 			$price_display = '฿' . $price_display;
 		}
+
+		$buyer_inline_items = $this->get_product_buyer_ticker_items( $post_id );
 
 		$bullets = $this->get_product_bullets( $post_id );
 		$purchase_options = $this->get_purchase_options_for_product( $post_id, $price_f );
@@ -1462,6 +1691,19 @@ final class Apptook_DS_Public {
 				<h3 class="st-card-title font-headline"><?php echo esc_html( $title ); ?></h3>
 			</div>
 			<div class="card-wave-bg text-center">
+				<?php if ( $buyer_inline_items !== array() ) : ?>
+					<div class="st-card-price-buyer-wrap" aria-label="recent buyers">
+						<div class="st-card-price-buyer-track" role="presentation" data-card-buyer-track>
+							<?php foreach ( $buyer_inline_items as $buyer_idx => $buyer_row ) : ?>
+								<span class="st-card-price-buyer-item<?php echo $buyer_idx === 0 ? ' is-active' : ''; ?>">
+									<span class="material-symbols-outlined" aria-hidden="true">account_circle</span>
+									<strong><?php echo esc_html( (string) ( $buyer_row['buyer'] ?? 'guest***' ) ); ?></strong>
+									<em><?php echo esc_html( (string) ( $buyer_row['time_ago'] ?? '' ) ); ?></em>
+								</span>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
 				<div class="st-card-price">
 					<?php echo esc_html( $price_display ); ?>
 					<span> <?php echo esc_html( $period ); ?></span>
@@ -1512,6 +1754,91 @@ final class Apptook_DS_Public {
 	/**
 	 * @return list<string>
 	 */
+	/**
+	 * @return list<array{buyer:string,time_ago:string}>
+	 */
+	private function get_product_buyer_ticker_items( int $product_id ): array {
+		$query = new WP_Query(
+			array(
+				'post_type'        => 'apptook_order',
+				'post_status'      => 'publish',
+				'posts_per_page'   => 20,
+				'suppress_filters' => true,
+				'meta_query'       => array(
+					'relation' => 'AND',
+					array(
+						'key'   => '_apptook_status',
+						'value' => Apptook_DS_Post_Types::ORDER_PAID,
+					),
+					array(
+						'key'   => '_apptook_product_id',
+						'value' => $product_id,
+					),
+				),
+				'orderby'          => 'date',
+				'order'            => 'DESC',
+			)
+		);
+
+		$items = array();
+		$seen_buyers = array();
+
+		if ( $query instanceof WP_Query && $query->have_posts() ) {
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$order_id = get_the_ID();
+				$customer_id = (int) get_post_meta( $order_id, '_apptook_customer_id', true );
+				if ( $customer_id <= 0 ) {
+					continue;
+				}
+
+				$user = get_userdata( $customer_id );
+				if ( ! $user instanceof WP_User ) {
+					continue;
+				}
+
+				$username = trim( (string) $user->user_login );
+				if ( $username === '' && is_string( $user->display_name ) ) {
+					$username = trim( (string) $user->display_name );
+				}
+				if ( $username === '' && is_string( $user->user_email ) ) {
+					$email = trim( strtolower( $user->user_email ) );
+					$parts = explode( '@', $email );
+					$username = isset( $parts[0] ) ? trim( (string) $parts[0] ) : '';
+				}
+				if ( $username === '' ) {
+					continue;
+				}
+
+				$masked = strlen( $username ) > 5 ? substr( $username, 0, 5 ) . '***' : $username . '***';
+				if ( isset( $seen_buyers[ $masked ] ) ) {
+					continue;
+				}
+				$seen_buyers[ $masked ] = true;
+
+				$diff = max( 60, (int) ( current_time( 'timestamp', true ) - get_post_time( 'U', true, $order_id ) ) );
+				$minutes = (int) floor( $diff / 60 );
+				$hours = (int) floor( $diff / 3600 );
+				$days = (int) floor( $diff / 86400 );
+				if ( $minutes < 60 ) {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d นาทีที่แล้ว', 'apptook-digital-store' ), $minutes );
+				} elseif ( $hours < 24 ) {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d ชั่วโมงที่แล้ว', 'apptook-digital-store' ), $hours );
+				} else {
+					$time_ago = sprintf( __( 'ซื้อเมื่อ %d วันที่แล้ว', 'apptook-digital-store' ), $days );
+				}
+
+				$items[] = array(
+					'buyer' => $masked,
+					'time_ago' => $time_ago,
+				);
+			}
+			wp_reset_postdata();
+		}
+
+		return $items;
+	}
+
 	private function get_product_bullets( int $post_id ): array {
 		$raw = get_post_meta( $post_id, '_apptook_bullets', true );
 		if ( is_string( $raw ) && trim( $raw ) !== '' ) {
@@ -1679,6 +2006,77 @@ final class Apptook_DS_Public {
 		return (string) ob_get_clean();
 	}
 
+	public function shortcode_blog(): string {
+		$posts = new WP_Query(
+			array(
+				'post_type'           => 'post',
+				'post_status'         => 'publish',
+				'posts_per_page'      => 12,
+				'ignore_sticky_posts' => true,
+				'orderby'             => 'date',
+				'order'               => 'DESC',
+			)
+		);
+
+		ob_start();
+		?>
+		<div class="apptook-stitch apptook-ds apptook-blog-page">
+			<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $this->render_global_menuheader( 'blog' );
+			?>
+			<main class="apptook-blog-main">
+				<section class="apptook-blog-wrap" aria-labelledby="apptook-blog-heading">
+					<header class="apptook-blog-head">
+						<h1 id="apptook-blog-heading"><?php esc_html_e( 'Blog', 'apptook-digital-store' ); ?></h1>
+						<p><?php esc_html_e( 'อัปเดตข่าวสาร บทความ และเทคนิคการใช้งานล่าสุดจากทีมงาน', 'apptook-digital-store' ); ?></p>
+					</header>
+
+					<?php if ( ! $posts->have_posts() ) : ?>
+						<div class="apptook-blog-empty"><?php esc_html_e( 'ยังไม่มีบทความในขณะนี้', 'apptook-digital-store' ); ?></div>
+					<?php else : ?>
+						<div class="apptook-blog-grid">
+							<?php while ( $posts->have_posts() ) : $posts->the_post(); ?>
+								<?php
+								$post_id = get_the_ID();
+								$title = get_the_title( $post_id );
+								$permalink = get_permalink( $post_id );
+								$date_text = get_the_date( 'j M Y', $post_id );
+								$excerpt = get_the_excerpt( $post_id );
+								if ( ! is_string( $excerpt ) || trim( $excerpt ) === '' ) {
+									$excerpt = wp_trim_words( wp_strip_all_tags( (string) get_post_field( 'post_content', $post_id ) ), 24, '…' );
+								}
+								?>
+								<article class="apptook-blog-card">
+									<a class="apptook-blog-thumb-link" href="<?php echo esc_url( $permalink ); ?>">
+										<?php if ( has_post_thumbnail( $post_id ) ) : ?>
+											<?php echo get_the_post_thumbnail( $post_id, 'large', array( 'class' => 'apptook-blog-thumb', 'loading' => 'lazy' ) ); ?>
+										<?php else : ?>
+											<div class="apptook-blog-thumb is-fallback"><span class="material-symbols-outlined" aria-hidden="true">article</span></div>
+										<?php endif; ?>
+									</a>
+									<div class="apptook-blog-content">
+										<p class="apptook-blog-date"><?php echo esc_html( $date_text ); ?></p>
+										<h2><a href="<?php echo esc_url( $permalink ); ?>"><?php echo esc_html( $title ); ?></a></h2>
+										<p class="apptook-blog-excerpt"><?php echo esc_html( $excerpt ); ?></p>
+										<a class="apptook-blog-readmore" href="<?php echo esc_url( $permalink ); ?>"><?php esc_html_e( 'คลิกเพื่ออ่านเพิ่มเติม', 'apptook-digital-store' ); ?></a>
+									</div>
+								</article>
+							<?php endwhile; ?>
+						</div>
+						<?php wp_reset_postdata(); ?>
+					<?php endif; ?>
+				</section>
+			</main>
+			<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $this->render_global_footer();
+			?>
+		</div>
+		<?php
+		return (string) ob_get_clean();
+	}
+
 	public function shortcode_order_history(): string {
 		$shop_url     = $this->get_page_url_by_option( 'apptook_ds_page_shop_id' );
 		$register_url = $this->get_register_page_url();
@@ -1749,7 +2147,23 @@ final class Apptook_DS_Public {
 					$status_key  = (string) get_post_meta( $order_id, '_apptook_status', true );
 					$amount      = (float) get_post_meta( $order_id, '_apptook_amount', true );
 					$created_at  = get_the_date( 'd/m/Y H:i', $order_id );
-					$product_name = $product_id > 0 ? get_the_title( $product_id ) : __( 'Unknown Product', 'apptook-digital-store' );
+					$created_date_iso = get_post_time( 'Y-m-d', false, $order_id );
+					$expires_at_raw = (string) get_post_meta( $order_id, '_apptook_expire_at', true );
+					$expires_ts = $expires_at_raw !== '' ? strtotime( $expires_at_raw ) : false;
+					if ( ! is_int( $expires_ts ) || $expires_ts <= 0 ) {
+						$expires_ts = strtotime( '+30 days', (int) get_post_time( 'U', true, $order_id ) );
+					}
+					$expires_at = is_int( $expires_ts ) && $expires_ts > 0 ? gmdate( 'd/m/Y', $expires_ts ) : '-';
+					$product_name = $product_id > 0 ? get_the_title( $product_id ) : '';
+					if ( ! is_string( $product_name ) || trim( $product_name ) === '' ) {
+						$fallback_name = get_post_meta( $order_id, '_apptook_product_name', true );
+						if ( is_string( $fallback_name ) && trim( $fallback_name ) !== '' ) {
+							$product_name = $fallback_name;
+						} else {
+							$order_title = get_the_title( $order_id );
+							$product_name = is_string( $order_title ) && trim( $order_title ) !== '' ? $order_title : __( 'Unknown Product', 'apptook-digital-store' );
+						}
+					}
 
 					$ui_state = 'pending';
 					if ( $status_key === Apptook_DS_Post_Types::ORDER_PAID ) {
@@ -1763,9 +2177,13 @@ final class Apptook_DS_Public {
 						'product_name' => is_string( $product_name ) ? $product_name : __( 'Unknown Product', 'apptook-digital-store' ),
 						'status_label' => Apptook_DS_Post_Types::get_order_status_label( $status_key ),
 						'ui_state' => $ui_state,
+						'amount' => $amount,
 						'amount_text' => sprintf( '฿%s', number_format_i18n( $amount, 2 ) ),
 						'created_at' => is_string( $created_at ) ? $created_at : '',
+						'created_date_iso' => is_string( $created_date_iso ) ? $created_date_iso : '',
+						'expires_at' => is_string( $expires_at ) ? $expires_at : '-',
 					);
+
 				}
 				wp_reset_postdata();
 			}
@@ -1788,8 +2206,8 @@ final class Apptook_DS_Public {
 							<p class="apptook-order-history__subtitle"><?php esc_html_e( 'รายการออเดอร์ทั้งหมดของบัญชีนี้ พร้อมสถานะล่าสุดแบบเรียลไทม์', 'apptook-digital-store' ); ?></p>
 						</div>
 						<a class="apptook-ds-pd-back" href="<?php echo esc_url( $shop_url ); ?>">
-							<span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
 							<?php esc_html_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>
+							<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
 						</a>
 					</header>
 
@@ -1805,30 +2223,57 @@ final class Apptook_DS_Public {
 							<a class="apptook-st-submit apptook-order-history__btn" href="<?php echo esc_url( $shop_url ); ?>"><?php esc_html_e( 'ไปที่ Marketplace', 'apptook-digital-store' ); ?></a>
 						</div>
 					<?php else : ?>
+						<div class="apptook-order-history__panel apptook-order-history__panel--filter">
+							<h3><?php esc_html_e( 'เลือกช่วงวันที่ที่ต้องการดู', 'apptook-digital-store' ); ?></h3>
+							<div class="apptook-order-history__filters">
+								<div>
+									<label for="apptook-order-filter-start"><?php esc_html_e( 'วันที่เริ่มต้น', 'apptook-digital-store' ); ?></label>
+									<input id="apptook-order-filter-start" class="apptook-order-history__date-input" type="date" />
+								</div>
+								<div>
+									<label for="apptook-order-filter-end"><?php esc_html_e( 'วันที่สิ้นสุด', 'apptook-digital-store' ); ?></label>
+									<input id="apptook-order-filter-end" class="apptook-order-history__date-input" type="date" />
+								</div>
+							</div>
+						</div>
+
 						<div class="apptook-order-history__panel">
 							<div class="apptook-order-history__table-wrap" role="region" aria-label="<?php esc_attr_e( 'ตารางประวัติการสั่งซื้อ', 'apptook-digital-store' ); ?>">
 								<table class="apptook-order-history__table">
 									<thead>
 										<tr>
-											<th><?php esc_html_e( 'Order ID', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'Product', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'Amount', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'Status', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'Date', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'รหัสออเดอร์', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'สินค้า', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'ราคา', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'สถานะ', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'วันที่ซื้อ', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'วันหมดอายุ', 'apptook-digital-store' ); ?></th>
 										</tr>
 									</thead>
-									<tbody>
+									<tbody id="apptook-order-history-tbody">
 										<?php foreach ( $rows as $row ) : ?>
-											<tr>
+											<tr data-order-date="<?php echo esc_attr( (string) $row['created_date_iso'] ); ?>" data-order-amount="<?php echo esc_attr( (string) $row['amount'] ); ?>">
 												<td>#<?php echo esc_html( (string) $row['order_id'] ); ?></td>
 												<td><?php echo esc_html( (string) $row['product_name'] ); ?></td>
 												<td><?php echo esc_html( (string) $row['amount_text'] ); ?></td>
 												<td><span class="apptook-order-history__badge is-<?php echo esc_attr( (string) $row['ui_state'] ); ?>"><?php echo esc_html( (string) $row['status_label'] ); ?></span></td>
 												<td><?php echo esc_html( (string) $row['created_at'] ); ?></td>
+												<td><?php echo esc_html( (string) $row['expires_at'] ); ?></td>
 											</tr>
 										<?php endforeach; ?>
 									</tbody>
 								</table>
+							</div>
+							<p id="apptook-order-history-empty" class="apptook-order-history__empty" hidden><?php esc_html_e( 'ไม่พบรายการตามช่วงวันที่ที่เลือก', 'apptook-digital-store' ); ?></p>
+							<div class="apptook-order-history__summary-grid">
+								<div class="apptook-order-history__summary-box">
+									<p><?php esc_html_e( 'จำนวนรายการที่พบ', 'apptook-digital-store' ); ?></p>
+									<strong id="apptook-order-history-total-items">0 <?php esc_html_e( 'รายการ', 'apptook-digital-store' ); ?></strong>
+								</div>
+								<div class="apptook-order-history__summary-box apptook-order-history__summary-box--highlight">
+									<p><?php esc_html_e( 'ยอดรวมตามช่วงวันที่', 'apptook-digital-store' ); ?></p>
+									<strong id="apptook-order-history-total-amount">฿0.00</strong>
+								</div>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -1863,7 +2308,7 @@ final class Apptook_DS_Public {
 								<h1 id="apptook-my-sub-heading" class="apptook-my-subscription__title"><?php esc_html_e( 'My Subscription', 'apptook-digital-store' ); ?></h1>
 								<p class="apptook-my-subscription__subtitle"><?php esc_html_e( 'ตรวจสอบสถานะ subscription ของคุณหลังเข้าสู่ระบบ', 'apptook-digital-store' ); ?></p>
 							</div>
-							<a class="apptook-my-subscription__back" href="<?php echo esc_url( $shop_url ); ?>" aria-label="<?php esc_attr_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>">
+							<a class="apptook-ds-pd-back" href="<?php echo esc_url( $shop_url ); ?>" aria-label="<?php esc_attr_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>">
 								<?php esc_html_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>
 								<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
 							</a>
@@ -1952,9 +2397,16 @@ final class Apptook_DS_Public {
 					$total_orders++;
 					$total_amount += $amount;
 
+					$thumb_url = '';
+					if ( $product_id > 0 && has_post_thumbnail( $product_id ) ) {
+						$thumb = get_the_post_thumbnail_url( $product_id, 'thumbnail' );
+						$thumb_url = is_string( $thumb ) ? $thumb : '';
+					}
+
 					$items[] = array(
 						'order_id' => $oid,
 						'product_title' => $product_id > 0 ? get_the_title( $product_id ) : __( 'Unknown Product', 'apptook-digital-store' ),
+						'product_thumb_url' => $thumb_url,
 						'ui_state' => $ui_state,
 						'ui_state_label' => $ui_state_label,
 						'ui_state_icon' => $ui_state_icon,
@@ -1985,8 +2437,8 @@ final class Apptook_DS_Public {
 							<p class="apptook-my-subscription__subtitle"><?php esc_html_e( 'ตรวจสอบแพ็กเกจที่คุณสั่งซื้อและสถานะการใช้งานล่าสุด', 'apptook-digital-store' ); ?></p>
 						</div>
 						<a class="apptook-ds-pd-back" href="<?php echo esc_url( $shop_url ); ?>" aria-label="<?php esc_attr_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>">
-							<span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
 							<?php esc_html_e( 'กลับไปหน้า Marketplace', 'apptook-digital-store' ); ?>
+							<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
 						</a>
 					</header>
 
@@ -2004,24 +2456,43 @@ final class Apptook_DS_Public {
 					<?php else : ?>
 						<div class="apptook-my-subscription__layout">
 							<div class="apptook-my-subscription__panel">
-								<h2><?php esc_html_e( 'รายการ Subscription ของคุณ', 'apptook-digital-store' ); ?></h2>
+								<div class="apptook-my-subscription__panel-head">
+									<h2><?php esc_html_e( 'รายการ Subscription ของคุณ', 'apptook-digital-store' ); ?></h2>
+									<span class="apptook-my-subscription__count-pill">
+										<span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>
+										<?php echo esc_html( sprintf( _n( '%d Product', '%d Products', (int) $total_orders, 'apptook-digital-store' ), (int) $total_orders ) ); ?>
+									</span>
+								</div>
 								<div class="apptook-my-subscription__list">
 									<?php foreach ( $items as $item ) : ?>
-										<article class="apptook-my-subscription__item">
+										<?php
+										$alert_state = 'safe';
+										if ( (int) $item['days_left'] <= 1 ) {
+											$alert_state = 'danger';
+										} elseif ( (int) $item['days_left'] < 7 ) {
+											$alert_state = 'warning';
+										}
+										?>
+										<article class="apptook-my-subscription__item" data-order-id="<?php echo esc_attr( (string) $item['order_id'] ); ?>">
 											<div class="apptook-my-subscription__item-head">
-												<div>
-													<h3><?php echo esc_html( (string) $item['product_title'] ); ?></h3>
-													<p><?php echo esc_html( sprintf( __( 'Order #%d', 'apptook-digital-store' ), (int) $item['order_id'] ) ); ?></p>
+												<div class="apptook-my-subscription__item-head-main">
+													<?php if ( (string) $item['product_thumb_url'] !== '' ) : ?>
+														<img class="apptook-my-subscription__product-thumb" src="<?php echo esc_url( (string) $item['product_thumb_url'] ); ?>" alt="<?php echo esc_attr( (string) $item['product_title'] ); ?>" loading="lazy" decoding="async" />
+													<?php endif; ?>
+													<div>
+														<h3><?php echo esc_html( (string) $item['product_title'] ); ?></h3>
+														<p><?php echo esc_html( sprintf( __( 'Order #%d', 'apptook-digital-store' ), (int) $item['order_id'] ) ); ?></p>
+													</div>
 												</div>
-												<span class="apptook-my-subscription__badge is-<?php echo esc_attr( (string) $item['ui_state'] ); ?>">
-													<span class="material-symbols-outlined" aria-hidden="true"><?php echo esc_html( (string) $item['ui_state_icon'] ); ?></span>
-													<?php echo esc_html( (string) $item['ui_state_label'] ); ?>
+												<span class="apptook-my-subscription__badge is-<?php echo esc_attr( (string) $item['ui_state'] ); ?>" data-apptook-sub-badge>
+													<span class="material-symbols-outlined" aria-hidden="true" data-apptook-sub-badge-icon><?php echo esc_html( (string) $item['ui_state_icon'] ); ?></span>
+													<span data-apptook-sub-badge-text><?php echo esc_html( (string) $item['ui_state_label'] ); ?></span>
 												</span>
 											</div>
 											<div class="apptook-my-subscription__item-grid">
-												<div><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'ราคา', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value"><?php echo esc_html( (string) $item['amount_text'] ); ?></p></div>
-												<div><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'วันหมดอายุโดยประมาณ', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value"><?php echo esc_html( gmdate( 'd/m/Y', (int) $item['expires_ts'] ) ); ?></p></div>
-												<div><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'แจ้งเตือน', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value"><?php echo esc_html( sprintf( __( 'เหลือ %d วัน', 'apptook-digital-store' ), (int) $item['days_left'] ) ); ?></p></div>
+												<div class="apptook-my-subscription__meta-card"><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'ราคา', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value"><?php echo esc_html( (string) $item['amount_text'] ); ?></p></div>
+												<div class="apptook-my-subscription__meta-card"><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'วันหมดอายุโดยประมาณ', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value"><?php echo esc_html( gmdate( 'd/m/Y', (int) $item['expires_ts'] ) ); ?></p></div>
+												<div class="apptook-my-subscription__meta-card"><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'แจ้งเตือน', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value apptook-my-subscription__meta-value--alert is-<?php echo esc_attr( $alert_state ); ?>" data-apptook-sub-alert><?php echo esc_html( sprintf( __( 'เหลือ %d วัน', 'apptook-digital-store' ), (int) $item['days_left'] ) ); ?></p></div>
 											</div>
 											<?php if ( (string) $item['license_key'] !== '' ) : ?>
 												<p class="apptook-my-subscription__license"><span><?php esc_html_e( 'License Key:', 'apptook-digital-store' ); ?></span> <code><?php echo esc_html( (string) $item['license_key'] ); ?></code></p>

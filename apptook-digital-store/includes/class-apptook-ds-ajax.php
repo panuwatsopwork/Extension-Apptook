@@ -23,6 +23,10 @@ final class Apptook_DS_Ajax {
 	private function __construct() {
 		add_action('wp_ajax_apptook_ds_create_order', array($this, 'create_order'));
 		add_action('wp_ajax_apptook_ds_upload_slip', array($this, 'upload_slip'));
+		add_action('wp_ajax_apptook_ds_mobile_verify_status', array($this, 'mobile_verify_status'));
+		add_action('wp_ajax_apptook_ds_mobile_verify_confirm', array($this, 'mobile_verify_confirm'));
+		add_action('wp_ajax_apptook_ds_mobile_upload_slip', array($this, 'mobile_upload_slip'));
+		add_action('wp_ajax_nopriv_apptook_ds_mobile_upload_slip', array($this, 'mobile_upload_slip'));
 		add_action('wp_ajax_nopriv_apptook_ds_login_popup', array($this, 'login_popup'));
 		add_action('wp_ajax_apptook_ds_login_popup', array($this, 'login_popup'));
 		add_action('wp_ajax_apptook_ds_subscription_statuses', array($this, 'subscription_statuses'));
@@ -40,6 +44,74 @@ final class Apptook_DS_Ajax {
 			return (int) $users[0]->ID;
 		}
 		return 1;
+	}
+
+	private function generate_verify_token(): string {
+		return wp_generate_password(48, false, false);
+	}
+
+	private function verify_mobile_token(string $token): array {
+		if ($token === '' || strlen($token) < 24) {
+			return array();
+		}
+		$data = get_transient('apptook_ds_verify_token_' . $token);
+		return is_array($data) ? $data : array();
+	}
+
+	private function issue_mobile_verify_token(string $session_token, int $user_id): array {
+		$token = $this->generate_verify_token();
+		$expire_ts = current_time('timestamp', true) + (45 * MINUTE_IN_SECONDS);
+		$expire_at = gmdate('Y-m-d H:i:s', $expire_ts);
+		set_transient(
+			'apptook_ds_verify_token_' . $token,
+			array(
+				'session_token' => $session_token,
+				'user_id' => $user_id,
+			),
+			45 * MINUTE_IN_SECONDS
+		);
+		$url = home_url('/apptook-mobile-verify/' . rawurlencode($token) . '/');
+		return array(
+			'token' => $token,
+			'expire_at' => $expire_at,
+			'url' => $url,
+		);
+	}
+
+	private function create_mobile_session(int $product_id, int $user_id, string $price): string {
+		$session_token = wp_generate_password(40, false, false);
+		set_transient(
+			'apptook_ds_mobile_session_' . $session_token,
+			array(
+				'product_id' => $product_id,
+				'user_id' => $user_id,
+				'price' => $price,
+				'mobile_slip_attachment_id' => 0,
+				'mobile_uploaded_at' => '',
+			),
+			2 * HOUR_IN_SECONDS
+		);
+		return $session_token;
+	}
+
+	private function get_mobile_session(string $session_token): array {
+		$data = get_transient('apptook_ds_mobile_session_' . $session_token);
+		return is_array($data) ? $data : array();
+	}
+
+	private function set_mobile_session(string $session_token, array $data): void {
+		set_transient('apptook_ds_mobile_session_' . $session_token, $data, 2 * HOUR_IN_SECONDS);
+	}
+
+	private function slip_preview_url(int $attachment_id): string {
+		if ($attachment_id <= 0) {
+			return '';
+		}
+		$url = wp_get_attachment_image_url($attachment_id, 'medium');
+		if (! is_string($url) || $url === '') {
+			$url = wp_get_attachment_url($attachment_id);
+		}
+		return is_string($url) ? $url : '';
 	}
 
 	private function create_order_record(int $product_id, int $customer_id, string $price, string $initial_status = Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT): int {
@@ -82,6 +154,9 @@ final class Apptook_DS_Ajax {
 		update_post_meta($post_id, '_apptook_amount', $price);
 		update_post_meta($post_id, '_apptook_status', $initial_status);
 		update_post_meta($post_id, '_apptook_slip_id', 0);
+		update_post_meta($post_id, '_apptook_mobile_slip_attachment_id', 0);
+		update_post_meta($post_id, '_apptook_mobile_uploaded_at', '');
+		update_post_meta($post_id, '_apptook_customer_confirmed_at', '');
 		update_post_meta($post_id, '_apptook_license_key', '');
 
 		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
@@ -113,10 +188,20 @@ final class Apptook_DS_Ajax {
 
 		$opts = get_option('apptook_ds_options', array());
 		$user_id = get_current_user_id();
+		$session_token = $this->create_mobile_session($product_id, $user_id, $price);
+		$verify = $this->issue_mobile_verify_token($session_token, $user_id);
+		$mobile_verify_qr_url = add_query_arg(
+			array(
+				'size' => '240x240',
+				'data' => (string) $verify['url'],
+			),
+			'https://api.qrserver.com/v1/create-qr-code/'
+		);
 
 		wp_send_json_success(
 			array(
 				'order_id'       => 0,
+				'mobile_session_token' => $session_token,
 				'product_id'     => $product_id,
 				'amount'         => $price,
 				'promptpay_id'   => isset($opts['promptpay_id']) ? (string) $opts['promptpay_id'] : '',
@@ -124,6 +209,12 @@ final class Apptook_DS_Ajax {
 				'payment_note'   => isset($opts['payment_note']) ? (string) $opts['payment_note'] : '',
 				'order_ref'      => 'PENDING-' . $user_id . '-' . $product_id,
 				'upload_nonce'   => wp_create_nonce('apptook_ds_upload_product_' . $product_id . '_' . $user_id),
+				'mobile_verify_token' => (string) $verify['token'],
+				'mobile_verify_expires_at' => (string) $verify['expire_at'],
+				'mobile_verify_url' => (string) $verify['url'],
+				'mobile_verify_qr_url' => (string) $mobile_verify_qr_url,
+				'mobile_status_nonce' => wp_create_nonce('apptook_ds_mobile_status_' . $session_token),
+				'mobile_confirm_nonce' => wp_create_nonce('apptook_ds_mobile_confirm_' . $session_token),
 			)
 		);
 	}
@@ -329,5 +420,164 @@ final class Apptook_DS_Ajax {
 				'message'  => __('อัปโหลดสลิปแล้ว รอแอดมินตรวจสอบ', 'apptook-digital-store'),
 			)
 		);
+	}
+
+	public function mobile_verify_status(): void {
+		if (! is_user_logged_in()) {
+			wp_send_json_error(array('code' => 'not_logged_in', 'message' => __('กรุณาเข้าสู่ระบบ', 'apptook-digital-store')), 401);
+		}
+		$session_token = isset($_POST['session_token']) ? sanitize_text_field(wp_unslash((string) $_POST['session_token'])) : '';
+		if ($session_token === '') {
+			wp_send_json_error(array('code' => 'invalid_session', 'message' => __('ไม่พบรายการ', 'apptook-digital-store')), 400);
+		}
+		check_ajax_referer('apptook_ds_mobile_status_' . $session_token, 'nonce');
+		$session = $this->get_mobile_session($session_token);
+		if (empty($session)) {
+			wp_send_json_error(array('code' => 'session_expired', 'message' => __('ลิงก์หมดอายุ กรุณาสร้างใหม่', 'apptook-digital-store')), 410);
+		}
+		if ((int) ($session['user_id'] ?? 0) !== get_current_user_id()) {
+			wp_send_json_error(array('code' => 'forbidden', 'message' => __('ไม่มีสิทธิ์เข้าถึงรายการนี้', 'apptook-digital-store')), 403);
+		}
+		$slip_id = (int) ($session['mobile_slip_attachment_id'] ?? 0);
+		$preview_url = $this->slip_preview_url($slip_id);
+		$uploaded_at = (string) ($session['mobile_uploaded_at'] ?? '');
+		wp_send_json_success(array(
+			'code' => 'ok',
+			'message' => __('โหลดสถานะสำเร็จ', 'apptook-digital-store'),
+			'data' => array(
+				'session_token' => $session_token,
+				'status' => $slip_id > 0 ? Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM : Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT,
+				'mobile_uploaded' => $slip_id > 0,
+				'preview_url' => $preview_url,
+				'mobile_uploaded_at' => $uploaded_at,
+			),
+		));
+	}
+
+	public function mobile_verify_confirm(): void {
+		if (! is_user_logged_in()) {
+			wp_send_json_error(array('code' => 'not_logged_in', 'message' => __('กรุณาเข้าสู่ระบบ', 'apptook-digital-store')), 401);
+		}
+		$session_token = isset($_POST['session_token']) ? sanitize_text_field(wp_unslash((string) $_POST['session_token'])) : '';
+		if ($session_token === '') {
+			wp_send_json_error(array('code' => 'invalid_session', 'message' => __('ไม่พบรายการ', 'apptook-digital-store')), 400);
+		}
+		check_ajax_referer('apptook_ds_mobile_confirm_' . $session_token, 'nonce');
+		$session = $this->get_mobile_session($session_token);
+		if (empty($session)) {
+			wp_send_json_error(array('code' => 'session_expired', 'message' => __('ลิงก์หมดอายุ กรุณาเริ่มใหม่', 'apptook-digital-store')), 410);
+		}
+		$user_id = (int) ($session['user_id'] ?? 0);
+		$product_id = (int) ($session['product_id'] ?? 0);
+		$price = (string) ($session['price'] ?? '');
+		$slip_id = (int) ($session['mobile_slip_attachment_id'] ?? 0);
+		if ($user_id !== get_current_user_id()) {
+			wp_send_json_error(array('code' => 'forbidden', 'message' => __('ไม่มีสิทธิ์เข้าถึงรายการนี้', 'apptook-digital-store')), 403);
+		}
+		if ($product_id <= 0 || $price === '') {
+			wp_send_json_error(array('code' => 'invalid_session_data', 'message' => __('ข้อมูลรายการไม่ครบ', 'apptook-digital-store')), 400);
+		}
+		if ($slip_id <= 0) {
+			wp_send_json_error(array('code' => 'no_slip', 'message' => __('ยังไม่พบสลิปจากมือถือ', 'apptook-digital-store')), 400);
+		}
+
+		$order_id = $this->create_order_record(
+			$product_id,
+			$user_id,
+			$price,
+			Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM
+		);
+		if ($order_id <= 0) {
+			wp_send_json_error(array('code' => 'create_order_failed', 'message' => __('ไม่สามารถสร้างคำขอซื้อได้', 'apptook-digital-store')), 500);
+		}
+
+		$confirmed_at = current_time('mysql', true);
+		$uploaded_at = (string) ($session['mobile_uploaded_at'] ?? '');
+		update_post_meta($order_id, '_apptook_mobile_slip_attachment_id', $slip_id);
+		update_post_meta($order_id, '_apptook_mobile_uploaded_at', $uploaded_at);
+		update_post_meta($order_id, '_apptook_customer_confirmed_at', $confirmed_at);
+		update_post_meta($order_id, '_apptook_slip_id', $slip_id);
+		update_post_meta($order_id, '_apptook_status', Apptook_DS_Post_Types::ORDER_PENDING_REVIEW);
+		delete_transient('apptook_ds_mobile_session_' . $session_token);
+
+		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
+			Apptook_DS_External_DB::instance()->upsert_order_from_wp((int) $order_id);
+			Apptook_DS_External_DB::instance()->add_order_log((int) $order_id, 'customer_confirmed_slip', Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM, Apptook_DS_Post_Types::ORDER_PENDING_REVIEW);
+		}
+
+		wp_send_json_success(array(
+			'code' => 'confirmed',
+			'message' => __('ส่งหลักฐานสำเร็จ รอแอดมินตรวจสอบ', 'apptook-digital-store'),
+			'data' => array(
+				'order_id' => $order_id,
+				'status' => Apptook_DS_Post_Types::ORDER_PENDING_REVIEW,
+				'customer_confirmed_at' => $confirmed_at,
+			),
+		));
+	}
+
+	public function mobile_upload_slip(): void {
+		$token = isset($_POST['verify_token']) ? sanitize_text_field(wp_unslash((string) $_POST['verify_token'])) : '';
+		$verify = $this->verify_mobile_token($token);
+		$session_token = isset($verify['session_token']) ? (string) $verify['session_token'] : '';
+		if ($session_token === '') {
+			wp_send_json_error(array('code' => 'invalid_or_expired_token', 'message' => __('ลิงก์อัปโหลดไม่ถูกต้องหรือหมดอายุ', 'apptook-digital-store')), 403);
+		}
+		$session = $this->get_mobile_session($session_token);
+		if (empty($session)) {
+			wp_send_json_error(array('code' => 'session_expired', 'message' => __('เซสชันหมดอายุ กรุณาเริ่มใหม่จากคอมพิวเตอร์', 'apptook-digital-store')), 410);
+		}
+		if (empty($_FILES['slip']['name'])) {
+			wp_send_json_error(array('code' => 'missing_file', 'message' => __('กรุณาเลือกรูปสลิป', 'apptook-digital-store')), 400);
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		$file = $_FILES['slip'];
+		if (! isset($file['size']) || (int) $file['size'] <= 0 || (int) $file['size'] > 5 * 1024 * 1024) {
+			wp_send_json_error(array('code' => 'file_size_limit', 'message' => __('ขนาดไฟล์ต้องไม่เกิน 5MB', 'apptook-digital-store')), 400);
+		}
+		$allowed = array(
+			'jpg|jpeg|jpe' => 'image/jpeg',
+			'png'          => 'image/png',
+			'webp'         => 'image/webp',
+		);
+		$overrides = array('test_form' => false, 'mimes' => $allowed);
+		$move = wp_handle_upload($file, $overrides);
+		if (isset($move['error'])) {
+			wp_send_json_error(array('code' => 'upload_failed', 'message' => sanitize_text_field((string) $move['error'])), 400);
+		}
+		$real_mime = wp_check_filetype_and_ext($move['file'], basename((string) $move['file']));
+		$mime = isset($real_mime['type']) ? (string) $real_mime['type'] : '';
+		if (! in_array($mime, array('image/jpeg', 'image/png', 'image/webp'), true)) {
+			@unlink($move['file']);
+			wp_send_json_error(array('code' => 'invalid_mime', 'message' => __('ไฟล์ต้องเป็นรูปภาพเท่านั้น', 'apptook-digital-store')), 400);
+		}
+		$attachment = array(
+			'post_mime_type' => $move['type'],
+			'post_title'     => sanitize_file_name(pathinfo($move['file'], PATHINFO_FILENAME)),
+			'post_content'   => '',
+			'post_status'    => 'inherit',
+		);
+		$attach_id = wp_insert_attachment($attachment, $move['file'], 0);
+		if (is_wp_error($attach_id)) {
+			wp_send_json_error(array('code' => 'attachment_failed', 'message' => $attach_id->get_error_message()), 500);
+		}
+		$meta = wp_generate_attachment_metadata($attach_id, $move['file']);
+		wp_update_attachment_metadata($attach_id, $meta);
+		$uploaded_at = current_time('mysql', true);
+		$session['mobile_slip_attachment_id'] = (int) $attach_id;
+		$session['mobile_uploaded_at'] = $uploaded_at;
+		$this->set_mobile_session($session_token, $session);
+		wp_send_json_success(array(
+			'code' => 'uploaded',
+			'message' => __('อัปโหลดสำเร็จ กรุณากลับไปที่หน้าคอมพิวเตอร์เพื่อกดยืนยันส่งหลักฐาน', 'apptook-digital-store'),
+			'data' => array(
+				'session_token' => $session_token,
+				'status' => Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM,
+				'preview_url' => $this->slip_preview_url((int) $attach_id),
+				'mobile_uploaded_at' => $uploaded_at,
+			),
+		));
 	}
 }

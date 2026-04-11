@@ -704,11 +704,28 @@
 	text-align: center;
 }
 
+.apptook-ds-slip-mobile-qr-wrap .apptook-ds-slip-preview {
+	margin: 0.95rem auto 0;
+}
+
 .apptook-ds-slip-mobile-title {
 	margin: 0;
 	font-size: 0.92rem;
 	font-weight: 600;
 	color: #35546d;
+}
+
+.apptook-ds-slip-mobile-status {
+	margin: 0.7rem 0 0;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #2b4a63;
+}
+
+.apptook-ds-mobile-has-preview .apptook-ds-slip-mobile-title,
+.apptook-ds-mobile-has-preview .apptook-ds-slip-mobile-status,
+.apptook-ds-mobile-has-preview .apptook-ds-slip-mobile-qr {
+	display: none;
 }
 
 .apptook-ds-slip-mobile-qr {

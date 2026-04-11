@@ -12,6 +12,7 @@ if (! defined('ABSPATH')) {
 final class Apptook_DS_Post_Types {
 
 	public const ORDER_PENDING_PAYMENT = 'pending_payment';
+	public const ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM = 'slip_uploaded_waiting_customer_confirm';
 	public const ORDER_PENDING_REVIEW  = 'pending_review';
 	public const ORDER_PAID            = 'paid';
 	public const ORDER_REJECTED        = 'rejected';
@@ -116,6 +117,7 @@ final class Apptook_DS_Post_Types {
 	public static function order_statuses(): array {
 		return array(
 			self::ORDER_PENDING_PAYMENT => __('รอชำระเงิน', 'apptook-digital-store'),
+			self::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM => __('อัปโหลดสลิปแล้ว รอลูกค้ายืนยัน', 'apptook-digital-store'),
 			self::ORDER_PENDING_REVIEW  => __('รอตรวจสลิป', 'apptook-digital-store'),
 			self::ORDER_PAID            => __('ชำระสำเร็จ', 'apptook-digital-store'),
 			self::ORDER_REJECTED        => __('ปฏิเสธ', 'apptook-digital-store'),

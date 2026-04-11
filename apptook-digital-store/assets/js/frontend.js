@@ -229,8 +229,8 @@
 	}
 
 	function showSlipStep(data) {
-		var qrMarkup = data && data.qr_image_url
-			? '<img src="' + esc(String(data.qr_image_url)) + '" alt="QR สำหรับอัปโหลดสลิปผ่านมือถือ" />'
+		var mobileQrImg = data && data.mobile_verify_qr_url
+			? '<img src="' + esc(String(data.mobile_verify_qr_url)) + '" alt="QR อัปโหลดสลิปผ่านมือถือ" />'
 			: '<p class="apptook-ds-slip-qr-empty">ยังไม่มี QR สำหรับแสดงผล</p>';
 		var html =
 			'<div class="apptook-ds-modal apptook-ds-modal--slip">' +
@@ -242,7 +242,7 @@
 				'</div>' +
 				'<div class="apptook-ds-slip-tabs" role="tablist" aria-label="โหมดอัปโหลดสลิป">' +
 					'<button type="button" class="apptook-ds-slip-tab is-active" data-apptook-slip-tab="upload" role="tab" aria-selected="true">ลากไฟล์ปกติ</button>' +
-					'<button type="button" class="apptook-ds-slip-tab" data-apptook-slip-tab="mobile" role="tab" aria-selected="false">อัปโหลดผ่านมือถือ (QR)</button>' +
+					'<button type="button" class="apptook-ds-slip-tab" data-apptook-slip-tab="mobile" role="tab" aria-selected="false">Upload via Mobile</button>' +
 				'</div>' +
 				'<div class="apptook-ds-slip-panel is-active" data-apptook-slip-panel="upload">' +
 					'<input type="file" class="apptook-ds-slip-input" accept="image/jpeg,image/png,image/webp" data-apptook-file />' +
@@ -261,8 +261,10 @@
 				'</div>' +
 				'<div class="apptook-ds-slip-panel" data-apptook-slip-panel="mobile" hidden>' +
 					'<div class="apptook-ds-slip-mobile-qr-wrap">' +
-						'<p class="apptook-ds-slip-mobile-title">สแกน QR นี้ผ่านมือถือเพื่ออัปโหลดสลิป</p>' +
-						'<div class="apptook-ds-slip-mobile-qr">' + qrMarkup + '</div>' +
+						'<p class="apptook-ds-slip-mobile-title">1) สแกน QR ด้วยมือถือ 2) อัปโหลดสลิป 3) กลับมากดยืนยันที่คอม</p>' +
+						'<div class="apptook-ds-slip-mobile-qr">' + mobileQrImg + '</div>' +
+						'<p class="apptook-ds-slip-mobile-status" data-apptook-mobile-status>ยังไม่อัปโหลดจากมือถือ</p>' +
+						'<div class="apptook-ds-slip-preview" data-apptook-mobile-preview-wrap hidden><img data-apptook-mobile-preview alt="Mobile slip preview" /></div>' +
 					'</div>' +
 				'</div>' +
 				'<div class="apptook-ds-slip-actions">' +
@@ -273,20 +275,80 @@
 			'</div>';
 
 		var overlay = openModal(html);
-		var legacyPickerBtn = qs('.apptook-ds-slip-picker-btn', overlay);
-		if (legacyPickerBtn && legacyPickerBtn.parentNode) {
-			legacyPickerBtn.parentNode.removeChild(legacyPickerBtn);
-		}
 		var fileInput = qs('[data-apptook-file]', overlay);
 		var errEl = qs('[data-apptook-err]', overlay);
 		var fileNameEl = qs('[data-apptook-file-name]', overlay);
 		var previewWrap = qs('[data-apptook-slip-preview-wrap]', overlay);
 		var previewImg = qs('[data-apptook-slip-preview]', overlay);
 		var dropZone = qs('[data-apptook-drop-zone]', overlay);
+		var sendBtn = qs('[data-apptook-send-slip]', overlay);
+		var mobileStatusEl = qs('[data-apptook-mobile-status]', overlay);
+		var mobilePreviewWrap = qs('[data-apptook-mobile-preview-wrap]', overlay);
+		var mobilePreviewImg = qs('[data-apptook-mobile-preview]', overlay);
 		var pickers = overlay.querySelectorAll('[data-apptook-pick-file]');
 		var tabBtns = overlay.querySelectorAll('[data-apptook-slip-tab]');
 		var panels = overlay.querySelectorAll('[data-apptook-slip-panel]');
 		var activeTab = 'upload';
+		var pollId = null;
+
+		function setPrimaryButtonState() {
+			if (!sendBtn) return;
+			if (activeTab === 'mobile') {
+				sendBtn.textContent = 'ยืนยันส่งหลักฐานการโอน';
+				var hasMobileSlip = mobilePreviewWrap && !mobilePreviewWrap.hidden;
+				sendBtn.disabled = !hasMobileSlip;
+			} else {
+				sendBtn.textContent = apptookDS.i18n.confirmSlip;
+				sendBtn.disabled = false;
+			}
+		}
+
+		function applyMobileStatus(payload) {
+			if (!payload) return;
+			if (mobileStatusEl) {
+				mobileStatusEl.textContent = payload.mobile_uploaded ? 'อัปโหลดแล้วจากมือถือ' : 'ยังไม่อัปโหลดจากมือถือ';
+			}
+			if (mobilePreviewWrap && mobilePreviewImg) {
+				if (payload.mobile_uploaded && payload.preview_url) {
+					mobilePreviewImg.src = payload.preview_url;
+					mobilePreviewWrap.hidden = false;
+				} else {
+					mobilePreviewWrap.hidden = true;
+					mobilePreviewImg.removeAttribute('src');
+				}
+			}
+			if (payload.mobile_uploaded) {
+				overlay.classList.add('apptook-ds-mobile-has-preview');
+			} else {
+				overlay.classList.remove('apptook-ds-mobile-has-preview');
+			}
+			setPrimaryButtonState();
+		}
+
+		function pollMobileStatus() {
+			if (!data.mobile_session_token || !data.mobile_status_nonce) return;
+			var fd = new FormData();
+			fd.append('session_token', String(data.mobile_session_token));
+			fd.append('nonce', data.mobile_status_nonce);
+			postFormData('apptook_ds_mobile_verify_status', fd).then(function (res) {
+				if (res && res.success && res.data && res.data.data) {
+					applyMobileStatus(res.data.data);
+				}
+			});
+		}
+
+		function ensurePolling() {
+			if (pollId) return;
+			pollMobileStatus();
+			pollId = window.setInterval(function () {
+				if (!document.body.contains(overlay)) {
+					window.clearInterval(pollId);
+					pollId = null;
+					return;
+				}
+				pollMobileStatus();
+			}, 4000);
+		}
 
 		function setActiveTab(tab) {
 			activeTab = tab === 'mobile' ? 'mobile' : 'upload';
@@ -300,9 +362,9 @@
 				panel.classList.toggle('is-active', isActive);
 				panel.hidden = !isActive;
 			});
-			if (errEl) {
-				errEl.style.display = 'none';
-			}
+			if (errEl) errEl.style.display = 'none';
+			setPrimaryButtonState();
+			if (activeTab === 'mobile') ensurePolling();
 		}
 
 		tabBtns.forEach(function (btn) {
@@ -312,16 +374,12 @@
 		});
 
 		function setSelectedFile(file) {
-			if (fileNameEl) {
-				fileNameEl.textContent = file ? file.name : 'ยังไม่ได้เลือกไฟล์';
-			}
+			if (fileNameEl) fileNameEl.textContent = file ? file.name : 'ยังไม่ได้เลือกไฟล์';
 			if (dropZone) {
 				dropZone.classList.toggle('is-selected', !!file);
 				dropZone.classList.toggle('has-preview', !!file);
 			}
-			if (!previewWrap || !previewImg) {
-				return;
-			}
+			if (!previewWrap || !previewImg) return;
 			if (!file) {
 				previewWrap.hidden = true;
 				previewImg.removeAttribute('src');
@@ -339,61 +397,62 @@
 		}
 
 		function setInputFile(file) {
-			if (!fileInput || !file) {
-				return;
-			}
+			if (!fileInput || !file) return;
 			try {
 				var dt = new DataTransfer();
 				dt.items.add(file);
 				fileInput.files = dt.files;
-			} catch (err) {
-				// fallback: some browsers may not allow direct assignment
-			}
+			} catch (err) {}
 			setSelectedFile(file);
 		}
 
 		if (pickers && pickers.length && fileInput) {
 			pickers.forEach(function (btn) {
-				btn.addEventListener('click', function () {
-					fileInput.click();
-				});
+				btn.addEventListener('click', function () { fileInput.click(); });
 			});
 		}
-
 		if (fileInput) {
 			fileInput.addEventListener('change', function () {
 				var f = fileInput.files && fileInput.files[0];
 				setSelectedFile(f || null);
 			});
 		}
-
 		if (dropZone) {
 			['dragenter', 'dragover'].forEach(function (name) {
-				dropZone.addEventListener(name, function (e) {
-					e.preventDefault();
-					e.stopPropagation();
-					dropZone.classList.add('is-drag-over');
-				});
+				dropZone.addEventListener(name, function (e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('is-drag-over'); });
 			});
 			['dragleave', 'drop'].forEach(function (name) {
-				dropZone.addEventListener(name, function (e) {
-					e.preventDefault();
-					e.stopPropagation();
-					dropZone.classList.remove('is-drag-over');
-				});
+				dropZone.addEventListener(name, function (e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('is-drag-over'); });
 			});
 			dropZone.addEventListener('drop', function (e) {
 				var dropped = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-				if (dropped) {
-					setInputFile(dropped);
-				}
+				if (dropped) setInputFile(dropped);
 			});
 		}
 
-		qs('[data-apptook-send-slip]', overlay).addEventListener('click', function () {
+		sendBtn.addEventListener('click', function () {
 			if (activeTab === 'mobile') {
-				errEl.style.display = 'block';
-				errEl.textContent = 'โหมดอัปโหลดผ่าน QR บนมือถือเป็นโหมดแสดงผลเท่านั้นในตอนนี้';
+				if (!data.mobile_session_token || !data.mobile_confirm_nonce) {
+					errEl.style.display = 'block';
+					errEl.textContent = 'ไม่พบข้อมูลยืนยันรายการ';
+					return;
+				}
+				errEl.style.display = 'none';
+				sendBtn.disabled = true;
+				sendBtn.textContent = apptookDS.i18n.uploading;
+				var cfd = new FormData();
+				cfd.append('session_token', String(data.mobile_session_token));
+				cfd.append('nonce', data.mobile_confirm_nonce);
+				postFormData('apptook_ds_mobile_verify_confirm', cfd).then(function (res) {
+					if (!res.success) throw new Error((res.data && res.data.message) || apptookDS.i18n.error);
+					closeModal(overlay);
+					showToastSuccess((res.data && res.data.message) || 'ส่งหลักฐานสำเร็จ รอแอดมินตรวจสอบ');
+				}).catch(function (e) {
+					errEl.style.display = 'block';
+					errEl.textContent = e.message || apptookDS.i18n.error;
+					sendBtn.disabled = false;
+					setPrimaryButtonState();
+				});
 				return;
 			}
 
@@ -416,33 +475,27 @@
 			}
 			errEl.style.display = 'none';
 			var fd = new FormData();
-			if (data.order_id) {
-				fd.append('order_id', String(data.order_id));
-			}
-			if (data.product_id) {
-				fd.append('product_id', String(data.product_id));
-			}
+			if (data.order_id) fd.append('order_id', String(data.order_id));
+			if (data.product_id) fd.append('product_id', String(data.product_id));
 			fd.append('nonce', data.upload_nonce);
 			fd.append('slip', f);
-			var btn = qs('[data-apptook-send-slip]', overlay);
-			btn.disabled = true;
-			btn.textContent = apptookDS.i18n.uploading;
-
+			sendBtn.disabled = true;
+			sendBtn.textContent = apptookDS.i18n.uploading;
 			postFormData('apptook_ds_upload_slip', fd)
 				.then(function (res) {
-					if (!res.success) {
-						throw new Error((res.data && res.data.message) || apptookDS.i18n.error);
-					}
+					if (!res.success) throw new Error((res.data && res.data.message) || apptookDS.i18n.error);
 					closeModal(overlay);
 					showToastSuccess(res.data && res.data.message ? res.data.message : 'อัปโหลดสลิปแล้ว');
 				})
 				.catch(function (e) {
 					errEl.style.display = 'block';
 					errEl.textContent = e.message || apptookDS.i18n.error;
-					btn.disabled = false;
-					btn.textContent = apptookDS.i18n.confirmSlip;
+					sendBtn.disabled = false;
+					setPrimaryButtonState();
 				});
 		});
+
+		setPrimaryButtonState();
 	}
 
 	bindPopupLoginAjax();

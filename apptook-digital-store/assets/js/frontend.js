@@ -647,8 +647,8 @@
 			var total = baseTotal - couponDiscount;
 			var priceEl = overlay.querySelector('[data-apptook-live-price]');
 			var subEl = overlay.querySelector('[data-apptook-live-price-sub]');
-			if (priceEl) priceEl.textContent = formatTHB(total);
-			if (subEl) subEl.textContent = formatTHB(monthly) + ' ต่อเดือน';
+			animatePdPrice(priceEl, total, '');
+			animatePdPrice(subEl, monthly, ' ต่อเดือน');
 		}
 
 		overlay.addEventListener('click', function (e) {
@@ -707,16 +707,13 @@
 			if (promoApplyBtn) {
 				var promoInput = overlay.querySelector('[data-apptook-promo-input]');
 				var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
-				var configuredCodes = (window.apptookDS && Array.isArray(window.apptookDS.discountCodes)) ? window.apptookDS.discountCodes : [];
-				var isValidCode = code !== '' && configuredCodes.indexOf(code) !== -1;
+				var configuredCodes = (window.apptookDS && window.apptookDS.discountCodes && typeof window.apptookDS.discountCodes === 'object') ? window.apptookDS.discountCodes : {};
+				var fixedDiscount = parseFloat(configuredCodes[code] || '0') || 0;
 				var activeDurationPromo = getActiveDuration();
 				var modifierPromo = getActiveTypeModifier();
 				var monthlyPromo = activeDurationPromo.base + modifierPromo;
 				var baseTotalPromo = monthlyPromo * activeDurationPromo.months;
-				var discount = 0;
-				if (isValidCode) {
-					discount = Math.round(baseTotalPromo * 0.1 * 100) / 100;
-				}
+				var discount = fixedDiscount;
 				if (discount > baseTotalPromo) discount = baseTotalPromo;
 				overlay.setAttribute('data-apptook-coupon-discount', String(discount));
 				updateLivePrice();
@@ -995,8 +992,8 @@
 			e.preventDefault();
 			var promoInput = document.querySelector('[data-pd-promo-input]');
 			var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
-			var configuredCodes = (window.apptookDS && Array.isArray(window.apptookDS.discountCodes)) ? window.apptookDS.discountCodes : [];
-			var isValidCode = code !== '' && configuredCodes.indexOf(code) !== -1;
+			var configuredCodes = (window.apptookDS && window.apptookDS.discountCodes && typeof window.apptookDS.discountCodes === 'object') ? window.apptookDS.discountCodes : {};
+			var fixedDiscount = parsePdNumber(configuredCodes[code] || '0');
 			var pdBuyBtnPromo = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
 			if (pdBuyBtnPromo) {
 				var activeDuration = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
@@ -1015,10 +1012,7 @@
 				var monthsPromo = selectedDurationPromo ? parseInt(selectedDurationPromo.months, 10) : 1;
 				if (isNaN(monthsPromo) || monthsPromo < 1) monthsPromo = 1;
 				var baseTotalPromo = monthlyPromo * monthsPromo;
-				var discount = 0;
-				if (isValidCode) {
-					discount = Math.round(baseTotalPromo * 0.1 * 100) / 100;
-				}
+				var discount = fixedDiscount;
 				if (discount > baseTotalPromo) discount = baseTotalPromo;
 				pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', String(discount));
 				updateProductDetailLivePrice(activeDuration);
@@ -1035,6 +1029,11 @@
 			return;
 		}
 		e.preventDefault();
+
+		if (buyBtn.classList.contains('apptook-ds-pd-buy-btn')) {
+			startOrderFlow(buyBtn.getAttribute('data-product-id'), buyBtn);
+			return;
+		}
 
 		var card = buyBtn.closest('.product-card');
 		var productName = buyBtn.getAttribute('data-product-name') || '';

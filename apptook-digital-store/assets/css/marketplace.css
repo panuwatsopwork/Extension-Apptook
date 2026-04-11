@@ -3455,6 +3455,167 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	border-radius: 1rem;
 }
 
+.apptook-stitch.apptook-support-page .apptook-support-main {
+	padding-top: 12rem;
+	padding-bottom: 3.25rem;
+	background: var(--st-surface);
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-wrap {
+	width: min(1280px, calc(100% - 2rem));
+	margin: 0 auto;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-grid {
+	display: grid;
+	grid-template-columns: 1.35fr 1fr;
+	gap: 1.1rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-side {
+	display: grid;
+	gap: 1rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-card {
+	background: #ffffff;
+	border: 1px solid #dbe4e7;
+	border-radius: 1.45rem;
+	padding: 1.4rem 1.5rem;
+	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-card--primary {
+	padding: 1.6rem 1.55rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-kicker {
+	margin: 0 0 0.2rem;
+	font-size: 0.68rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	color: #0ea5a8;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-card h1 {
+	margin: 0;
+	font-size: 2rem;
+	line-height: 1.18;
+	color: #0f172a;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-lead {
+	margin: 0.8rem 0 1rem;
+	color: #475569;
+	font-size: 0.96rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-meta-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-meta-box {
+	background: #eff3f4;
+	border-radius: 1rem;
+	padding: 0.8rem 1rem;
+	display: grid;
+	gap: 0.28rem;
+	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-meta-box span {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-meta-box strong {
+	font-size: 1rem;
+	color: #0f172a;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-line-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	background: #22c55e;
+	color: #fff;
+	text-decoration: none;
+	font-weight: 700;
+	border-radius: 999px;
+	padding: 0.6rem 1rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-card h2 {
+	margin: 0 0 0.65rem;
+	font-size: 1.35rem;
+	color: #0f172a;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-checklist {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: 0.55rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-checklist li {
+	position: relative;
+	padding-left: 1.4rem;
+	color: #334155;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-checklist li::before {
+	content: '✓';
+	position: absolute;
+	left: 0;
+	top: 0;
+	color: #14b8a6;
+	font-weight: 700;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-faq-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.apptook-stitch.apptook-support-page .apptook-support-faq-tags span {
+	background: #f1f5f9;
+	color: #334155;
+	font-size: 0.8rem;
+	font-weight: 600;
+	padding: 0.42rem 0.72rem;
+	border-radius: 999px;
+}
+
+@media (max-width: 1024px) {
+	.apptook-stitch.apptook-support-page .apptook-support-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 767px) {
+	.apptook-stitch.apptook-support-page .apptook-support-main {
+		padding-top: 8.4rem;
+	}
+
+	.apptook-stitch.apptook-support-page .apptook-support-wrap {
+		width: calc(100% - 1rem);
+	}
+
+	.apptook-stitch.apptook-support-page .apptook-support-card h1 {
+		font-size: 1.6rem;
+	}
+
+	.apptook-stitch.apptook-support-page .apptook-support-meta-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
 @media (max-width: 1024px) {
 	.apptook-stitch .apptook-blog-grid {
 		grid-template-columns: 1fr;

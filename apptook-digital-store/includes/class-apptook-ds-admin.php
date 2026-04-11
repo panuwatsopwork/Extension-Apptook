@@ -524,6 +524,15 @@ final class Apptook_DS_Admin {
 			array('key' => 'payment_note')
 		);
 
+		add_settings_field(
+			'line_support_url',
+			__('ลิงก์ LINE Support', 'apptook-digital-store'),
+			array($this, 'field_text'),
+			'apptook-ds-settings',
+			'apptook_ds_main',
+			array('key' => 'line_support_url')
+		);
+
 		add_settings_section(
 			'apptook_ds_marketplace',
 			__('หน้า Marketplace (หน้าแรก)', 'apptook-digital-store'),
@@ -587,6 +596,23 @@ final class Apptook_DS_Admin {
 			array('key' => 'google_client_secret')
 		);
 
+		add_settings_section(
+			'apptook_ds_discount_codes',
+			__('โค้ดส่วนลด', 'apptook-digital-store'),
+			static function (): void {
+				echo '<p>' . esc_html__('เพิ่ม/ลบโค้ดส่วนลดได้สูงสุด 10 โค้ด', 'apptook-digital-store') . '</p>';
+			},
+			'apptook-ds-settings'
+		);
+
+		add_settings_field(
+			'discount_codes',
+			__('รายการโค้ดส่วนลด', 'apptook-digital-store'),
+			array($this, 'field_discount_codes'),
+			'apptook-ds-settings',
+			'apptook_ds_discount_codes'
+		);
+
 	}
 
 	/**
@@ -598,11 +624,34 @@ final class Apptook_DS_Admin {
 		$out['promptpay_id'] = isset($input['promptpay_id']) ? sanitize_text_field((string) $input['promptpay_id']) : '';
 		$out['qr_image_url'] = isset($input['qr_image_url']) ? esc_url_raw((string) $input['qr_image_url']) : '';
 		$out['payment_note'] = isset($input['payment_note']) ? sanitize_textarea_field((string) $input['payment_note']) : '';
+		$out['line_support_url'] = isset($input['line_support_url']) ? esc_url_raw((string) $input['line_support_url']) : '';
 		$out['mkt_title']             = isset($input['mkt_title']) ? sanitize_text_field((string) $input['mkt_title']) : '';
 		$out['mkt_subtitle']          = isset($input['mkt_subtitle']) ? sanitize_textarea_field((string) $input['mkt_subtitle']) : '';
 		$out['mkt_search_placeholder'] = isset($input['mkt_search_placeholder']) ? sanitize_text_field((string) $input['mkt_search_placeholder']) : '';
 		$out['google_client_id'] = isset($input['google_client_id']) ? sanitize_text_field((string) $input['google_client_id']) : '';
 		$out['google_client_secret'] = isset($input['google_client_secret']) ? sanitize_text_field((string) $input['google_client_secret']) : '';
+
+		$rows = array();
+		$codes_in = isset($input['discount_code']) && is_array($input['discount_code']) ? array_values((array) $input['discount_code']) : array();
+		$amounts_in = isset($input['discount_amount']) && is_array($input['discount_amount']) ? array_values((array) $input['discount_amount']) : array();
+		$max = min(10, max(count($codes_in), count($amounts_in)));
+		$seen_codes = array();
+		for ($i = 0; $i < $max; $i++) {
+			$code = isset($codes_in[$i]) ? strtoupper(sanitize_text_field((string) $codes_in[$i])) : '';
+			$amount = isset($amounts_in[$i]) ? (float) sanitize_text_field((string) $amounts_in[$i]) : 0;
+			if ($code === '' || $amount <= 0) {
+				continue;
+			}
+			if (isset($seen_codes[$code])) {
+				continue;
+			}
+			$seen_codes[$code] = true;
+			$rows[] = array(
+				'code' => $code,
+				'amount' => $amount,
+			);
+		}
+		$out['discount_code_rows'] = $rows;
 
 		return $out;
 	}
@@ -629,6 +678,27 @@ final class Apptook_DS_Admin {
 		);
 	}
 
+	public function field_discount_codes(): void {
+		$opts = get_option('apptook_ds_options', array());
+		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? array_values($opts['discount_code_rows']) : array();
+		$rows = array_slice($rows, 0, 10);
+
+		echo '<div id="apptook-ds-discount-codes-wrap">';
+		$render_rows = max(1, count($rows));
+		for ($i = 0; $i < $render_rows; $i++) {
+			$code = isset($rows[$i]['code']) ? (string) $rows[$i]['code'] : '';
+			$amount = isset($rows[$i]['amount']) ? (string) $rows[$i]['amount'] : '';
+			echo '<div class="apptook-ds-discount-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">';
+			echo '<input type="text" class="regular-text" name="apptook_ds_options[discount_code][]" value="' . esc_attr($code) . '" placeholder="โค้ด เช่น SAVE100" style="max-width:280px;" />';
+			echo '<input type="number" min="0" step="0.01" class="small-text" name="apptook_ds_options[discount_amount][]" value="' . esc_attr($amount) . '" placeholder="ส่วนลด (บาท)" />';
+			echo '<button type="button" class="button apptook-ds-remove-discount-row">ลบ</button>';
+			echo '</div>';
+		}
+		echo '</div>';
+		echo '<button type="button" class="button" id="apptook-ds-add-discount-row">+ เพิ่มโค้ดส่วนลด</button>';
+		echo '<p class="description">สูงสุด 10 โค้ด (ตั้งราคาเป็นจำนวนเงินที่ลด หน่วยบาท)</p>';
+		echo '<script>(function(){var wrap=document.getElementById("apptook-ds-discount-codes-wrap");var add=document.getElementById("apptook-ds-add-discount-row");if(!wrap||!add){return;}function bindRemove(btn){btn.addEventListener("click",function(){var rows=wrap.querySelectorAll(".apptook-ds-discount-row");if(rows.length<=1){var c=wrap.querySelector("input[name=\"apptook_ds_options[discount_code][]\"]");var a=wrap.querySelector("input[name=\"apptook_ds_options[discount_amount][]\"]");if(c){c.value="";}if(a){a.value="";}return;}var row=btn.closest(".apptook-ds-discount-row");if(row){row.remove();}});}wrap.querySelectorAll(".apptook-ds-remove-discount-row").forEach(bindRemove);add.addEventListener("click",function(){var count=wrap.querySelectorAll(".apptook-ds-discount-row").length;if(count>=10){return;}var row=document.createElement("div");row.className="apptook-ds-discount-row";row.style.cssText="display:flex;gap:8px;align-items:center;margin-bottom:8px;";var inputCode=document.createElement("input");inputCode.type="text";inputCode.className="regular-text";inputCode.name="apptook_ds_options[discount_code][]";inputCode.placeholder="โค้ด เช่น SAVE100";inputCode.style.maxWidth="280px";var inputAmount=document.createElement("input");inputAmount.type="number";inputAmount.min="0";inputAmount.step="0.01";inputAmount.className="small-text";inputAmount.name="apptook_ds_options[discount_amount][]";inputAmount.placeholder="ส่วนลด (บาท)";var remove=document.createElement("button");remove.type="button";remove.className="button apptook-ds-remove-discount-row";remove.textContent="ลบ";row.appendChild(inputCode);row.appendChild(inputAmount);row.appendChild(remove);wrap.appendChild(row);bindRemove(remove);});})();</script>';
+	}
 
 	public function render_settings_page(): void {
 		if (! current_user_can('manage_options')) {

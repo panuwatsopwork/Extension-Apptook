@@ -27,8 +27,10 @@ final class Apptook_DS_Public {
 		add_shortcode('apptook_order_history', array($this, 'shortcode_order_history'));
 		add_shortcode('apptook_register', array($this, 'shortcode_register'));
 		add_shortcode('apptook_blog', array($this, 'shortcode_blog'));
+		add_shortcode('apptook_support', array($this, 'shortcode_support'));
 		add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
 		add_action('template_redirect', array($this, 'maybe_render_mobile_verify_page'));
+		add_action('template_redirect', array($this, 'maybe_render_support_route'));
 		add_filter('single_template', array($this, 'single_product_template'));
 		add_filter('template_include', array($this, 'blog_index_template'), 20);
 		add_action('init', array($this, 'register_blog_rewrite_rule'));
@@ -693,6 +695,7 @@ final class Apptook_DS_Public {
 
 	public function register_blog_rewrite_rule(): void {
 		add_rewrite_rule( '^blog/?$', 'index.php?apptook_ds_blog_index=1', 'top' );
+		add_rewrite_rule( '^support/?$', 'index.php?apptook_ds_support=1', 'top' );
 		add_rewrite_rule( '^apptook-mobile-verify/([^/]+)/?$', 'index.php?apptook_mobile_verify=1&verify_token=$matches[1]', 'top' );
 	}
 
@@ -702,6 +705,7 @@ final class Apptook_DS_Public {
 	 */
 	public function register_blog_query_vars( array $vars ): array {
 		$vars[] = 'apptook_ds_blog_index';
+		$vars[] = 'apptook_ds_support';
 		$vars[] = 'apptook_mobile_verify';
 		$vars[] = 'verify_token';
 		return $vars;
@@ -765,6 +769,15 @@ final class Apptook_DS_Public {
 			return true;
 		}
 
+		$is_support_shell = (
+			get_query_var('apptook_ds_support', '') === '1'
+			|| is_page('support')
+			|| $this->is_support_request_path()
+		);
+		if ($is_support_shell) {
+			return true;
+		}
+
 		$is_blog_shell = (
 			get_query_var('apptook_ds_blog_index', '') === '1'
 			|| is_home()
@@ -792,6 +805,9 @@ final class Apptook_DS_Public {
 		if ($post instanceof WP_Post && has_shortcode($post->post_content, 'apptook_blog')) {
 			return true;
 		}
+		if ($post instanceof WP_Post && has_shortcode($post->post_content, 'apptook_support')) {
+			return true;
+		}
 		if ($this->should_load_marketplace_assets()) {
 			return true;
 		}
@@ -812,6 +828,7 @@ final class Apptook_DS_Public {
 		$load_library = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_library' );
 		$load_order_history = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_order_history' );
 		$load_blog = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_blog' );
+		$load_support = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_support' );
 		$load_blog_route = (
 			get_query_var('apptook_ds_blog_index', '') === '1'
 			|| is_home()
@@ -822,10 +839,15 @@ final class Apptook_DS_Public {
 			|| is_date()
 			|| is_page('blog')
 		);
+		$load_support_route = (
+			get_query_var('apptook_ds_support', '') === '1'
+			|| is_page('support')
+			|| $this->is_support_request_path()
+		);
 		$load_simple_shop = $post instanceof WP_Post && has_shortcode( $post->post_content, 'apptook_shop' ) && $this->current_shop_layout() === 'simple';
 		$load_single_product = is_singular('apptook_product');
 		$load_single_post = is_singular('post');
-		$load_global_shell = $load_mkt || $load_reg_skin || $load_library || $load_order_history || $load_blog || $load_blog_route || $load_simple_shop || $load_single_product || $load_single_post;
+		$load_global_shell = $load_mkt || $load_reg_skin || $load_library || $load_order_history || $load_blog || $load_support || $load_blog_route || $load_support_route || $load_simple_shop || $load_single_product || $load_single_post;
 
 		$frontend_css_ver = (string) filemtime( APPTOOK_DS_PATH . 'assets/css/frontend.css' );
 		$marketplace_css_ver = (string) filemtime( APPTOOK_DS_PATH . 'assets/css/marketplace.css' );
@@ -879,12 +901,30 @@ final class Apptook_DS_Public {
 			);
 		}
 
+		$opts = get_option( 'apptook_ds_options', array() );
+		$discount_codes = array();
+		if ( isset( $opts['discount_code_rows'] ) && is_array( $opts['discount_code_rows'] ) ) {
+			foreach ( (array) $opts['discount_code_rows'] as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+				$code = isset( $row['code'] ) ? strtoupper( sanitize_text_field( (string) $row['code'] ) ) : '';
+				$amount = isset( $row['amount'] ) ? (float) $row['amount'] : 0;
+				if ( $code === '' || $amount <= 0 ) {
+					continue;
+				}
+				$discount_codes[ $code ] = $amount;
+			}
+		}
+		$discount_codes = array_slice( $discount_codes, 0, 10, true );
+
 		wp_localize_script(
 			'apptook-ds-frontend',
 			'apptookDS',
 			array(
 				'ajaxUrl' => admin_url('admin-ajax.php'),
 				'nonce'   => wp_create_nonce('apptook_ds_public'),
+				'discountCodes' => $discount_codes,
 				'i18n'    => array(
 					'loginRequired' => __('กรุณาเข้าสู่ระบบก่อนซื้อ', 'apptook-digital-store'),
 					'uploading'     => __('กำลังอัปโหลด...', 'apptook-digital-store'),
@@ -946,6 +986,7 @@ final class Apptook_DS_Public {
 		$shop_url     = $this->get_page_url_by_option( 'apptook_ds_page_shop_id' );
 		$library_url  = $this->get_page_url_by_option( 'apptook_ds_page_library_id' );
 		$order_history_url = $this->get_order_history_page_url();
+		$support_url  = $this->get_support_page_url();
 		$register_url = $this->get_register_page_url();
 		$current_user = wp_get_current_user();
 		$login_url    = add_query_arg( 'apptook_open_login', '1', $shop_url );
@@ -962,7 +1003,7 @@ final class Apptook_DS_Public {
 				<div class="st-nav__links">
 					<a class="<?php echo $active === 'marketplace' ? 'is-active' : ''; ?>" href="<?php echo esc_url( $shop_url ); ?>"><?php esc_html_e( 'Marketplace', 'apptook-digital-store' ); ?></a>
 					<a href="<?php echo esc_url( home_url( '/blog/' ) ); ?>"><?php esc_html_e( 'Blog', 'apptook-digital-store' ); ?></a>
-					<a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'Support', 'apptook-digital-store' ); ?></a>
+					<a class="<?php echo $active === 'support' ? 'is-active' : ''; ?>" href="<?php echo esc_url( $support_url ); ?>"><?php esc_html_e( 'Support', 'apptook-digital-store' ); ?></a>
 				</div>
 				<div class="st-nav__right">
 					<div class="st-nav__icons">
@@ -1018,7 +1059,7 @@ final class Apptook_DS_Public {
 			<div class="st-nav__mobile-panel" id="apptook-st-mobile-menu" aria-hidden="true">
 				<a class="<?php echo $active === 'marketplace' ? 'is-active' : ''; ?>" href="<?php echo esc_url( $shop_url ); ?>"><?php esc_html_e( 'Marketplace', 'apptook-digital-store' ); ?></a>
 				<a href="<?php echo esc_url( home_url( '/blog/' ) ); ?>"><?php esc_html_e( 'Blog', 'apptook-digital-store' ); ?></a>
-				<a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'Support', 'apptook-digital-store' ); ?></a>
+				<a class="<?php echo $active === 'support' ? 'is-active' : ''; ?>" href="<?php echo esc_url( $support_url ); ?>"><?php esc_html_e( 'Support', 'apptook-digital-store' ); ?></a>
 			</div>
 		</nav>
 		<?php if ( $ticker_items !== array() ) : ?>
@@ -1505,6 +1546,50 @@ final class Apptook_DS_Public {
 		return home_url( '/' );
 	}
 
+	private function is_support_request_path(): bool {
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path = $request_uri !== '' ? (string) wp_parse_url( $request_uri, PHP_URL_PATH ) : '';
+		if ( $path === '' ) {
+			return false;
+		}
+		$path = trim( $path, '/' );
+		if ( $path === 'support' ) {
+			return true;
+		}
+		return (bool) preg_match( '#/support$#', $path );
+	}
+
+	public function maybe_render_support_route(): void {
+		if ( is_admin() ) {
+			return;
+		}
+
+		$is_support_route = get_query_var( 'apptook_ds_support', '' ) === '1' || is_page( 'support' ) || $this->is_support_request_path();
+
+		if ( ! $is_support_route ) {
+			return;
+		}
+
+		status_header( 200 );
+		nocache_headers();
+
+		echo '<!doctype html><html ' . get_language_attributes() . '><head>';
+		echo '<meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '" />';
+		echo '<meta name="viewport" content="width=device-width, initial-scale=1" />';
+		echo '<title>' . esc_html__( 'Support', 'apptook-digital-store' ) . '</title>';
+		wp_head();
+		$body_classes = array( 'apptook-support-route' );
+		if ( is_admin_bar_showing() ) {
+			$body_classes[] = 'admin-bar';
+		}
+		echo '<body class="' . esc_attr( implode( ' ', $body_classes ) ) . '">';
+		wp_body_open();
+		echo $this->shortcode_support();
+		wp_footer();
+		echo '</body></html>';
+		exit;
+	}
+
 	private function get_order_history_page_url(): string {
 		$page_id = (int) get_option( 'apptook_ds_page_order_history_id', 0 );
 		if ( $page_id > 0 ) {
@@ -1523,6 +1608,26 @@ final class Apptook_DS_Public {
 		}
 
 		return add_query_arg( 'apptook_tab', 'history', $this->get_page_url_by_option( 'apptook_ds_page_library_id' ) );
+	}
+
+	private function get_support_page_url(): string {
+		$page_id = (int) get_option( 'apptook_ds_page_support_id', 0 );
+		if ( $page_id > 0 ) {
+			$url = get_permalink( $page_id );
+			if ( is_string( $url ) && $url !== '' ) {
+				return $url;
+			}
+		}
+
+		$page = get_page_by_path( 'support', OBJECT, 'page' );
+		if ( $page instanceof WP_Post && $page->post_status === 'publish' ) {
+			$url = get_permalink( $page );
+			if ( is_string( $url ) && $url !== '' ) {
+				return $url;
+			}
+		}
+
+		return home_url( '/support/' );
 	}
 
 	/**
@@ -2109,6 +2214,73 @@ final class Apptook_DS_Public {
 						</div>
 						<?php wp_reset_postdata(); ?>
 					<?php endif; ?>
+				</section>
+			</main>
+			<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $this->render_global_footer();
+			?>
+		</div>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	public function shortcode_support(): string {
+		$opts = get_option( 'apptook_ds_options', array() );
+		$line_support_url = isset( $opts['line_support_url'] ) ? esc_url( (string) $opts['line_support_url'] ) : '';
+		if ( $line_support_url === '' ) {
+			$line_support_url = 'https://line.me/';
+		}
+
+		ob_start();
+		?>
+		<div class="apptook-stitch apptook-ds apptook-support-page">
+			<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $this->render_global_menuheader( 'support' );
+			?>
+			<main class="apptook-support-main" aria-labelledby="apptook-support-heading">
+				<section class="apptook-support-wrap">
+					<div class="apptook-support-grid">
+						<article class="apptook-support-card apptook-support-card--primary">
+							<p class="apptook-support-kicker">SUPPORT CENTER</p>
+							<h1 id="apptook-support-heading"><?php esc_html_e( 'ติดต่อทีมซัพพอร์ตผ่าน LINE', 'apptook-digital-store' ); ?></h1>
+							<p class="apptook-support-lead"><?php esc_html_e( 'หากพบปัญหาการใช้งาน สามารถติดต่อทีมงานผ่าน LINE ได้ทันที เพื่อรับการช่วยเหลือแบบรวดเร็ว', 'apptook-digital-store' ); ?></p>
+							<div class="apptook-support-meta-grid">
+								<div class="apptook-support-meta-box">
+									<span><?php esc_html_e( 'เวลาทำการ', 'apptook-digital-store' ); ?></span>
+									<strong><?php esc_html_e( 'ทุกวัน 09:00 - 22:00 น.', 'apptook-digital-store' ); ?></strong>
+								</div>
+								<div class="apptook-support-meta-box">
+									<span><?php esc_html_e( 'เวลาตอบกลับเฉลี่ย', 'apptook-digital-store' ); ?></span>
+									<strong><?php esc_html_e( 'ภายใน 5-15 นาที', 'apptook-digital-store' ); ?></strong>
+								</div>
+							</div>
+							<a class="apptook-support-line-btn" href="<?php echo esc_url( $line_support_url ); ?>" target="_blank" rel="noopener noreferrer">
+								<span class="material-symbols-outlined" aria-hidden="true">chat</span>
+								<?php esc_html_e( 'แชทผ่าน LINE Official', 'apptook-digital-store' ); ?>
+							</a>
+						</article>
+						<div class="apptook-support-side">
+							<article class="apptook-support-card">
+								<h2><?php esc_html_e( 'ก่อนติดต่อแนะนำให้เตรียม', 'apptook-digital-store' ); ?></h2>
+								<ul class="apptook-support-checklist">
+									<li><?php esc_html_e( 'ชื่อสินค้าที่สั่งซื้อ', 'apptook-digital-store' ); ?></li>
+									<li><?php esc_html_e( 'อีเมลหรือชื่อผู้ใช้ที่สั่งซื้อ', 'apptook-digital-store' ); ?></li>
+									<li><?php esc_html_e( 'ภาพหน้าจอปัญหาที่พบ (ถ้ามี)', 'apptook-digital-store' ); ?></li>
+								</ul>
+							</article>
+							<article class="apptook-support-card">
+								<h2><?php esc_html_e( 'คำถามที่พบบ่อย', 'apptook-digital-store' ); ?></h2>
+								<div class="apptook-support-faq-tags">
+									<span><?php esc_html_e( 'เข้าใช้งานไม่ได้', 'apptook-digital-store' ); ?></span>
+									<span><?php esc_html_e( 'การต่ออายุ', 'apptook-digital-store' ); ?></span>
+									<span><?php esc_html_e( 'เปลี่ยนแพ็กเกจ', 'apptook-digital-store' ); ?></span>
+									<span><?php esc_html_e( 'ตรวจสอบออเดอร์', 'apptook-digital-store' ); ?></span>
+								</div>
+							</article>
+						</div>
+					</div>
 				</section>
 			</main>
 			<?php

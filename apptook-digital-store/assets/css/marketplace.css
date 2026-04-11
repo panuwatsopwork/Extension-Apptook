@@ -2303,10 +2303,10 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 	align-items: center;
 	gap: 0.45rem;
 	padding: 0.55rem 0.95rem;
-	border-radius: 1.75rem;
+	border-radius: 0.75rem;
 	border: 1px solid #e2e8f0;
 	background: #fff;
-	font-size: 0.9rem;
+	font-size: 0.88rem;
 	font-weight: 600;
 	color: #475569;
 	text-decoration: none;
@@ -2338,9 +2338,9 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 
 .apptook-stitch .apptook-ds-pd-card {
 	background: #fff;
-	border: 1px solid #e9f0f0;
+	border: 1px solid #f1f5f9;
 	border-radius: 2rem;
-	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+	box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
 	padding: 1.55rem;
 }
 
@@ -2355,11 +2355,11 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 	width: 64px;
 	height: 64px;
 	border-radius: 1rem;
-	background: var(--st-surface-container-low);
+	background: transparent;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0.55rem;
+	padding: 0;
 	flex-shrink: 0;
 }
 
@@ -2509,10 +2509,54 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 .apptook-stitch .apptook-ds-pd-duration-grid {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 0.4rem;
+	gap: 0.45rem;
 }
 
-.apptook-stitch .apptook-ds-pd-duration-pill,
+.apptook-stitch .apptook-ds-pd-duration-pill {
+	position: relative;
+	min-height: 64px;
+	padding: 0.48rem 0.6rem 1.2rem;
+	border-radius: 0.95rem !important;
+	border: 1.5px solid #e8e8eb;
+	background: #f4f4f6;
+	color: #13294b;
+	font-size: 0.76rem;
+	font-weight: 400;
+	text-align: center;
+	overflow: hidden;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill .month-title {
+	font-weight: 500;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill::after {
+	content: "Subscribe";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	font-size: 11px;
+	line-height: 1;
+	padding: 0.32rem 0.35rem 0.4rem;
+	background: rgba(0, 0, 0, 0.07);
+	color: #8f95a3;
+	text-align: center;
+	font-weight: 600;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill.is-active {
+	border-color: rgb(65, 225, 227);
+	background: #ffffff;
+	color: rgb(15, 77, 87);
+	box-shadow: inset 0 0 0 1px rgba(65, 225, 227, 0.35);
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill.is-active::after {
+	background: rgb(65, 225, 227);
+	color: rgb(15, 77, 87);
+}
+
 .apptook-stitch .apptook-ds-pd-type-chip {
 	display: inline-flex;
 	align-items: center;
@@ -2526,12 +2570,6 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	font-weight: 600;
 	color: #475569;
 	text-align: center;
-}
-
-.apptook-stitch .apptook-ds-pd-duration-pill.is-active {
-	background: var(--st-primary);
-	border-color: var(--st-primary);
-	color: #fff;
 }
 
 .apptook-stitch .apptook-ds-pd-type-select-wrap {
@@ -2751,14 +2789,16 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 }
 
 .apptook-stitch .apptook-ds-pd-purchase-card {
-	padding: 1.2rem 1.15rem;
-	border-radius: 1.7rem;
+	padding: 1.25rem 1.15rem;
+	border-radius: 2rem;
+	border: 1px solid #e2e8f0;
+	background: rgba(255, 255, 255, 0.92);
 }
 
 .apptook-stitch .apptook-ds-pd-summary-lines {
 	display: grid;
-	gap: 0.36rem;
-	padding: 0.28rem 0.15rem 0.15rem;
+	gap: 0.42rem;
+	padding: 0.12rem 0.15rem 0.2rem;
 }
 
 .apptook-stitch .apptook-ds-pd-summary-row {
@@ -2768,19 +2808,17 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	gap: 0.65rem;
 }
 
-.apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) {
-	color: #64748b;
-}
-
+.apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand),
 .apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) .detail-muted-label,
 .apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) .apptook-ds-pd-summary-value {
 	color: #64748b;
+	font-size: 0.88rem;
 }
 
 .apptook-stitch .apptook-ds-pd-summary-row:nth-child(2) {
-	padding-bottom: 0.52rem;
-	margin-bottom: 0.15rem;
-	border-bottom: 1px solid #d9e1ea;
+	padding-bottom: 0.6rem;
+	margin-bottom: 0.05rem;
+	border-bottom: 1px solid #e2e8f0;
 }
 
 .apptook-stitch .apptook-ds-pd-summary-value {
@@ -2790,30 +2828,36 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 }
 
 .apptook-stitch .apptook-ds-pd-summary-row.is-grand {
-	margin-top: 0.2rem;
+	padding-top: 0.2rem;
 }
 
 .apptook-stitch .apptook-ds-pd-summary-total {
-	font-size: 1.55rem;
+	font-size: 1.58rem;
 	line-height: 1;
 	font-weight: 400;
 	color: var(--st-primary);
 }
 
 .apptook-stitch .apptook-ds-pd-total-monthly {
-	margin: 0.15rem 0 0;
+	margin: 0.12rem 0 0;
 	text-align: right;
-	font-size: 0.72rem;
-	color: #94a3b8;
+	font-size: 0.74rem;
+	color: #64748b;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-wrap {
-	margin-top: 0.45rem;
-	margin-bottom: 0.15rem;
-	padding: 0.58rem 0.62rem;
-	border-radius: 0.9rem;
-	border: 1px solid #e2e8f0;
-	background: #ffffff;
+	margin-top: 0.55rem;
+	margin-bottom: 0.18rem;
+	padding: 0;
+	border-radius: 1.7rem;
+	border: 1px solid #d7dee7;
+	background: #fff;
+	overflow: hidden;
+	transition: none;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-wrap.is-open {
+	border-radius: 1.7rem;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-toggle {
@@ -2823,34 +2867,42 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	align-items: center;
 	border: 0;
 	background: transparent;
-	padding: 0;
+	padding: 0.95rem 1rem;
 	font-size: 0.82rem;
-	font-weight: 500;
-	color: #1f2937;
-	cursor: pointer;
+	font-weight: 700;
+	color: #334155;
+	cursor: default;
 	text-align: left;
+	transition: none;
+	box-shadow: none;
+	filter: none;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-panel {
-	margin-top: 0.48rem;
-	padding: 0.55rem;
-	border-radius: 0.85rem;
-	border: 1px solid #e2e8f0;
-	background: #fff;
+	margin-top: 0;
+	padding: 0 0.72rem 0.8rem;
+	border: 0;
+	background: transparent;
+	min-height: 56px;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-row {
 	display: flex;
+	align-items: center;
 	gap: 0.45rem;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-input {
 	flex: 1;
-	padding: 0.58rem 0.72rem;
-	border-radius: 0.65rem;
-	border: 1px solid #cbd5e1;
-	font-size: 0.76rem;
+	height: 48px;
+	padding: 0 0.95rem;
+	border-radius: 999px;
+	border: 1px solid #d7dee7;
+	background: #eff2f4;
+	font-size: 0.94rem;
+	font-weight: 700;
 	font-family: var(--st-font-text);
+	color: #64748b;
 }
 
 .apptook-stitch .apptook-ds-pd-promo-input:focus {
@@ -2860,13 +2912,14 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 }
 
 .apptook-stitch .apptook-ds-pd-promo-apply {
-	padding: 0.58rem 0.8rem;
-	border-radius: 0.65rem;
+	height: 46px;
+	padding: 0 1.05rem;
+	border-radius: 999px;
 	border: 0;
-	background: #41e1e3;
+	background: rgba(65, 225, 227, 0.95);
 	color: #fff;
-	font-size: 0.74rem;
-	font-weight: 600;
+	font-size: 0.9rem;
+	font-weight: 700;
 	font-family: var(--st-font-text);
 }
 
@@ -2881,13 +2934,13 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 
 .apptook-stitch .apptook-ds-pd-buy-btn {
 	background: var(--st-primary);
-	box-shadow: 0 10px 20px rgba(65, 225, 227, 0.25);
-	margin: 0.72rem 0 0.42rem;
+	box-shadow: 0 12px 24px rgba(65, 225, 227, 0.3);
+	margin: 0.65rem 0 0.4rem;
+	border-radius: 0.82rem;
 }
 
 .apptook-stitch .apptook-ds-pd-buy-btn:hover {
 	background: #34d9db;
-	box-shadow: 0 12px 22px rgba(65, 225, 227, 0.3);
 }
 
 .apptook-stitch .apptook-ds-pd-buy-btn:active {
@@ -2895,15 +2948,16 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 }
 
 .apptook-stitch .apptook-ds-pd-chat-btn {
-	border: 1px solid #d6dde5;
+	border: 1px solid #e2e8f0;
 	background: #ffffff;
-	color: #475569;
+	color: #334155;
+	border-radius: 0.82rem;
 }
 
 .apptook-stitch .apptook-ds-pd-chat-btn:hover {
-	border-color: #8ee7e9;
-	color: #0f4d57;
-	background: #f8ffff;
+	background: #f8fafc;
+	border-color: #cbd5e1;
+	color: #334155;
 }
 
 .apptook-stitch .apptook-ds-pd-choice-grid {
@@ -3012,6 +3066,159 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	100% {
 		transform: translateX(-50%);
 	}
+}
+
+/* Product Detail sync with code.html template (left main shell) */
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-main {
+	gap: 1.35rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-left-shell {
+	background: #ffffff;
+	border: 1px solid #e6edf2;
+	border-radius: 2rem;
+	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+	padding: 1.5rem 1.55rem;
+	display: grid;
+	gap: 1.25rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-left-shell > .apptook-ds-pd-card {
+	margin: 0;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-hero-head {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-icon-wrap {
+	width: 80px;
+	height: 80px;
+	padding: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-kicker {
+	font-size: 0.72rem;
+	letter-spacing: 0.09em;
+	margin: 0 0 0.25rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-title {
+	font-size: clamp(2rem, 3.2vw, 2.45rem);
+	font-weight: 700;
+	line-height: 1.05;
+	margin: 0;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-config-card {
+	margin-top: 0.15rem;
+	border-radius: 1rem;
+	padding: 1rem 1rem;
+	background: rgba(248, 250, 252, 0.75);
+	border: 1px solid #dbe3ea;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-config-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.7rem;
+	margin-bottom: 0.35rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-config-head p {
+	font-size: 0.88rem;
+	margin: 0;
+	line-height: 1.1;
+	font-weight: 600;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-config-head span {
+	font-size: 0.66rem;
+	line-height: 1.2;
+	color: #94a3b8;
+	white-space: nowrap;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-static-block {
+	margin-bottom: 0.6rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-static-title {
+	font-size: 0.78rem;
+	font-weight: 500;
+	margin-bottom: 0.34rem;
+	color: #64748b;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-duration-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 100px);
+	grid-auto-rows: 65px;
+	gap: 0.48rem;
+	justify-content: flex-start;
+	max-width: calc((100px * 5) + (0.48rem * 4));
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-duration-pill {
+	width: 100px;
+	height: 65px;
+	min-height: 65px;
+	padding: 0.42rem 0.35rem 1.08rem;
+	border-radius: 0.7rem !important;
+	font-size: 0.72rem;
+	font-weight: 500;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-duration-pill .month-title {
+	font-size: 0.78rem;
+	font-weight: 500;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-duration-pill::after {
+	font-size: 9px;
+	padding: 0.28rem 0.26rem 0.33rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-choice-grid {
+	gap: 0.42rem;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-choice-btn {
+	padding: 0.45rem 0.78rem;
+	border-radius: 0.7rem;
+	font-size: 0.76rem;
+	font-weight: 500;
+	min-height: 32px;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-summary-grand-right {
+	text-align: right;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-summary-total {
+	font-size: 1.9rem;
+	font-weight: 700;
+	color: var(--st-primary);
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-total-monthly {
+	font-size: 0.75rem;
+	color: #94a3b8;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-recent-buyer-ticker-wrap {
+	border-radius: 1rem;
+	background: #eef2f6;
+}
+
+.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-recent-buyer-inline-item {
+	font-size: 0.8rem;
 }
 
 /* ---- Blog page (Stitch-like) ---- */
@@ -3512,7 +3719,9 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	}
 
 	.apptook-stitch .apptook-ds-pd-duration-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(2, 100px);
+		grid-auto-rows: 65px;
+		justify-content: flex-start;
 	}
 
 	.apptook-stitch .st-footer__links {

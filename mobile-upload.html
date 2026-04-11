@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>อัปโหลดสลิปผ่านมือถือ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-1: #eef3ff;
+      --bg-2: #e8f9f6;
+      --surface: #ffffff;
+      --surface-soft: #f7faff;
+      --line: #d8e2f0;
+      --line-strong: #b8cae3;
+      --text: #14243d;
+      --muted: #5f7391;
+      --primary: #2f76f6;
+      --primary-dark: #205fd0;
+      --primary-soft: #e8f0ff;
+      --success: #0f8a5f;
+      --danger: #cb3445;
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --shadow-soft: 0 14px 35px rgba(21, 48, 89, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Kanit", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 0% -5%, #d8e6ff 0%, rgba(216, 230, 255, 0) 60%),
+        radial-gradient(900px 520px at 100% 0%, #d3f6ee 0%, rgba(211, 246, 238, 0) 56%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      padding: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .app {
+      width: min(520px, 100%);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 2px 2px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #3f5b82;
+      font-weight: 700;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #41e1e3 0%, #2f76f6 100%);
+      box-shadow: 0 0 0 5px rgba(65, 225, 227, 0.16);
+    }
+
+    .help-chip {
+      border: 1px solid #c8d8ef;
+      background: rgba(255, 255, 255, 0.7);
+      color: #49607f;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      backdrop-filter: blur(2px);
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 20px 18px 14px;
+      background: linear-gradient(145deg, #f6f9ff 0%, #ecf7ff 46%, #f1fffb 100%);
+      border-bottom: 1px solid #d8e6f4;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: #2e63bf;
+      border: 1px solid #ceddff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 5px 10px;
+      margin-bottom: 10px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 34px);
+      line-height: 1.12;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #102a4c;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .body {
+      padding: 16px 14px 14px;
+      display: grid;
+      gap: 12px;
+      background: #ffffff;
+    }
+
+    .order-box {
+      border: 1px solid #d9e5f2;
+      border-radius: 14px;
+      background: var(--surface-soft);
+      padding: 11px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .order-box span {
+      font-size: 12px;
+      color: #607793;
+      font-weight: 500;
+    }
+
+    .order-name {
+      font-size: 14px;
+      color: #163356;
+      font-weight: 700;
+      text-align: right;
+      max-width: 60%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .step {
+      border-radius: 12px;
+      border: 1px solid #dce5f3;
+      background: #fafcff;
+      padding: 9px 6px;
+      text-align: center;
+    }
+
+    .step strong {
+      display: block;
+      color: #1f4b80;
+      font-size: 11px;
+      margin-bottom: 2px;
+      font-weight: 700;
+    }
+
+    .step small {
+      color: #617895;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .upload-zone {
+      position: relative;
+      border: 1.5px dashed var(--line-strong);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, #fbfdff 0%, #f4f9ff 100%);
+      padding: 16px 12px;
+      text-align: center;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+      cursor: pointer;
+    }
+
+    .upload-zone.is-dragover {
+      border-color: #5a8de8;
+      background: #eef5ff;
+      transform: translateY(-1px);
+    }
+
+    .upload-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      margin: 0 auto 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #eaf2ff 0%, #dce9ff 100%);
+      color: #2e68c9;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .upload-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a3e68;
+    }
+
+    .upload-sub {
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: #64809f;
+    }
+
+    .file-row {
+      margin-top: 10px;
+      border-radius: 12px;
+      border: 1px solid #d9e3f1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      min-height: 46px;
+    }
+
+    .file-btn {
+      border: none;
+      border-radius: 999px;
+      background: #edf3ff;
+      color: #2f5fae;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .file-name {
+      font-size: 12px;
+      color: #516a89;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      text-align: left;
+    }
+
+    .primary-btn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--primary) 0%, #2b6be0 100%);
+      color: #fff;
+      padding: 14px 12px;
+      font-size: 17px;
+      font-family: inherit;
+      font-weight: 700;
+      letter-spacing: .01em;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(47, 118, 246, 0.30);
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .primary-btn:active {
+      transform: translateY(1px);
+    }
+
+    .primary-btn:hover {
+      filter: brightness(1.02);
+    }
+
+    .primary-btn:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .status {
+      border-radius: 12px;
+      padding: 10px 11px;
+      font-size: 12px;
+      line-height: 1.45;
+      border: 1px solid #dce6f4;
+      background: #f8fbff;
+      color: #5a7393;
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .status.success {
+      border-color: #bce7d4;
+      background: #effbf5;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .status.error {
+      border-color: #f5c0c7;
+      background: #fff3f5;
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .tips {
+      margin: 0;
+      padding: 0 2px;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+
+    .tips li {
+      font-size: 11px;
+      color: #647d9a;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      line-height: 1.4;
+    }
+
+    .dot {
+      margin-top: 4px;
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: #5f8ddd;
+      flex-shrink: 0;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    @media (min-width: 640px) {
+      body {
+        padding: 24px;
+      }
+
+      .body {
+        padding: 18px;
+      }
+
+      .hero {
+        padding: 24px 22px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div class="brand"><span class="brand-dot"></span> APPTOOK Secure Upload</div>
+      <a href="#" class="help-chip">Need help?</a>
+    </div>
+
+    <section class="card">
+      <header class="hero">
+        <span class="hero-badge">Mobile Verification</span>
+        <h1>อัปโหลดสลิปผ่านมือถือ</h1>
+        <p>อัปโหลดเร็วใน 10 วินาที ระบบจะนำไปยืนยันคำสั่งซื้อให้อัตโนมัติ</p>
+      </header>
+
+      <div class="body">
+        <div class="order-box">
+          <span>รายการที่กำลังยืนยัน</span>
+          <strong class="order-name" id="product-name">iQIYI VIP</strong>
+        </div>
+
+        <div class="steps">
+          <div class="step"><strong>STEP 1</strong><small>เลือกไฟล์สลิป</small></div>
+          <div class="step"><strong>STEP 2</strong><small>กดปุ่มอัปโหลด</small></div>
+          <div class="step"><strong>STEP 3</strong><small>กลับไปกดยืนยัน</small></div>
+        </div>
+
+        <label class="upload-zone" id="upload-zone" for="mobile-slip-file">
+          <div class="upload-icon">↑</div>
+          <p class="upload-title">แตะเพื่อเลือกไฟล์ หรือวางไฟล์สลิปที่นี่</p>
+          <p class="upload-sub">รองรับไฟล์ .jpg .jpeg .png .pdf (ไม่เกิน 10MB)</p>
+
+          <div class="file-row">
+            <button class="file-btn" id="select-file-btn" type="button">เลือกไฟล์</button>
+            <span class="file-name" id="mobile-file-name">ยังไม่ได้เลือกไฟล์</span>
+          </div>
+
+          <input id="mobile-slip-file" type="file" accept=".jpg,.jpeg,.png,.pdf,image/*" />
+        </label>
+
+        <button class="primary-btn" type="button" id="mobile-upload-btn">อัปโหลดสลิปการโอน</button>
+
+        <div class="status" id="upload-status"></div>
+
+        <ul class="tips">
+          <li><span class="dot"></span>ควรใช้ภาพที่เห็นยอดเงินและวันที่ชัดเจน เพื่ออนุมัติเร็วขึ้น</li>
+          <li><span class="dot"></span>หลังอัปโหลดสำเร็จ ให้กลับไปหน้าเดิมแล้วกดยืนยันสลิป</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const fileInput = document.getElementById('mobile-slip-file');
+      const fileNameEl = document.getElementById('mobile-file-name');
+      const selectBtn = document.getElementById('select-file-btn');
+      const uploadBtn = document.getElementById('mobile-upload-btn');
+      const uploadStatus = document.getElementById('upload-status');
+      const productNameEl = document.getElementById('product-name');
+      const uploadZone = document.getElementById('upload-zone');
+
+      const params = new URLSearchParams(window.location.search);
+      const product = params.get('product');
+      if (product && productNameEl) {
+        productNameEl.textContent = product;
+      }
+
+      const setStatus = (message, type = 'default') => {
+        if (!uploadStatus) return;
+        uploadStatus.textContent = message;
+        uploadStatus.classList.remove('success', 'error');
+        if (type === 'success') uploadStatus.classList.add('success');
+        if (type === 'error') uploadStatus.classList.add('error');
+      };
+
+      const setFile = (file) => {
+        fileNameEl.textContent = file ? file.name : 'ยังไม่ได้เลือกไฟล์';
+        uploadBtn.disabled = !file;
+      };
+
+      uploadBtn.disabled = true;
+
+      selectBtn?.addEventListener('click', function (event) {
+        event.preventDefault();
+        fileInput?.click();
+      });
+
+      fileInput?.addEventListener('change', function () {
+        const file = fileInput.files?.[0];
+        setFile(file);
+
+        if (file) {
+          setStatus('เลือกไฟล์เรียบร้อยแล้ว กด "อัปโหลดสลิปการโอน" เพื่อส่งข้อมูล');
+        } else {
+          setStatus('พร้อมอัปโหลดแล้ว เลือกไฟล์เพื่อเริ่มต้นได้เลย');
+        }
+      });
+
+      if (uploadZone) {
+        ['dragenter', 'dragover'].forEach((eventName) => {
+          uploadZone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            uploadZone.classList.add('is-dragover');
+          });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+          uploadZone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            uploadZone.classList.remove('is-dragover');
+          });
+        });
+
+        uploadZone.addEventListener('drop', (event) => {
+          const file = event.dataTransfer?.files?.[0];
+          if (!file || !fileInput) return;
+
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          fileInput.files = dt.files;
+          setFile(file);
+          setStatus('เพิ่มไฟล์จากการลากวางแล้ว กดอัปโหลดเพื่อส่งสลิป');
+        });
+      }
+
+      uploadBtn?.addEventListener('click', function () {
+        const file = fileInput?.files?.[0];
+
+        if (!file) {
+          setStatus('กรุณาเลือกไฟล์ก่อนอัปโหลด', 'error');
+          return;
+        }
+
+        setStatus('กำลังอัปโหลดสลิปของคุณ...');
+
+        window.setTimeout(() => {
+          setStatus('อัปโหลดเรียบร้อยแล้ว กลับไปหน้าเดิมเพื่อยืนยันออเดอร์ได้ทันที', 'success');
+        }, 900);
+      });
+    })();
+  </script>
+</body>
+</html>

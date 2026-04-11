@@ -52,6 +52,8 @@ final class Apptook_DS_Admin {
 		add_filter('post_row_actions', array($this, 'replace_product_edit_row_action'), 20, 2);
 		add_filter('page_row_actions', array($this, 'replace_product_edit_row_action'), 20, 2);
 		add_action('admin_init', array($this, 'redirect_product_add_new_to_custom_editor'));
+		add_action('admin_init', array($this, 'redirect_product_edit_to_custom_editor'));
+		add_action('load-post.php', array($this, 'redirect_product_edit_to_custom_editor'));
 		add_filter('redirect_post_location', array($this, 'append_product_save_messages'), 10, 2);
 		add_action('admin_notices', array($this, 'render_product_save_notices'));
 		add_filter('manage_apptook_product_posts_columns', array($this, 'product_columns'));
@@ -161,6 +163,53 @@ final class Apptook_DS_Admin {
 				admin_url('edit.php')
 			)
 		);
+		exit;
+	}
+
+	public function redirect_product_edit_to_custom_editor(): void {
+		if (! is_admin()) {
+			return;
+		}
+
+		global $pagenow;
+		if ($pagenow !== 'post.php') {
+			return;
+		}
+
+		$action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+		if ($action !== 'edit') {
+			return;
+		}
+
+		$post_id = isset($_GET['post']) ? absint($_GET['post']) : 0;
+		if ($post_id <= 0) {
+			return;
+		}
+
+		$post = get_post($post_id);
+		if (! $post || $post->post_type !== 'apptook_product') {
+			return;
+		}
+
+		if (! current_user_can('edit_post', $post_id)) {
+			return;
+		}
+
+		$target = add_query_arg(
+			array(
+				'post_type' => 'apptook_product',
+				'page' => 'apptook-ds-product-editor',
+				'product_id' => $post_id,
+			),
+			admin_url('edit.php')
+		);
+
+		$current_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+		if ($current_uri !== '' && strpos($current_uri, 'page=apptook-ds-product-editor') !== false) {
+			return;
+		}
+
+		wp_safe_redirect($target);
 		exit;
 	}
 
@@ -359,6 +408,13 @@ final class Apptook_DS_Admin {
 			set_post_thumbnail($product_id, $thumbnail_id);
 		} else {
 			delete_post_thumbnail($product_id);
+		}
+
+		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
+			Apptook_DS_External_DB::instance()->sync_product((int) $product_id);
+			$durations = $this->parse_duration_rows((string) (wp_unslash($_POST['apptook_duration_rows'] ?? '')), (float) sanitize_text_field(wp_unslash($_POST['apptook_price'] ?? '0')));
+			$types = isset($_POST['apptook_type_enabled']) ? $this->parse_type_rows((string) (wp_unslash($_POST['apptook_type_rows'] ?? ''))) : array();
+			Apptook_DS_External_DB::instance()->sync_product_purchase_options((int) $product_id, $durations, $types);
 		}
 
 		$redirect = add_query_arg(

@@ -725,6 +725,84 @@
 		// kept intentionally for backward compatibility if legacy select returns
 	});
 
+	function parsePdNumber(value) {
+		var num = parseFloat(String(value || '0').replace(/[^\d.-]/g, ''));
+		return isNaN(num) ? 0 : num;
+	}
+
+	function formatPdTHB(value) {
+		return '฿' + Number(value || 0).toFixed(2);
+	}
+
+	function animatePdPrice(el, nextValue, suffix) {
+		if (!el) return;
+		var startValue = parsePdNumber(el.getAttribute('data-pd-last-value') || '0');
+		var endValue = parsePdNumber(nextValue);
+		if (Math.abs(endValue - startValue) < 0.001) {
+			el.textContent = formatPdTHB(endValue) + (suffix || '');
+			el.setAttribute('data-pd-last-value', String(endValue));
+			return;
+		}
+
+		var startTs = null;
+		var duration = 320;
+
+		function tick(ts) {
+			if (!startTs) startTs = ts;
+			var progress = Math.min((ts - startTs) / duration, 1);
+			var eased = 1 - Math.pow(1 - progress, 3);
+			var current = startValue + ((endValue - startValue) * eased);
+			el.textContent = formatPdTHB(current) + (suffix || '');
+			if (progress < 1) {
+				window.requestAnimationFrame(tick);
+				return;
+			}
+			el.setAttribute('data-pd-last-value', String(endValue));
+		}
+
+		window.requestAnimationFrame(tick);
+	}
+
+	function updateProductDetailLivePrice(activeDurationBtn) {
+		var pdBuyBtn = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+		if (!pdBuyBtn) return;
+
+		var durationsRaw = pdBuyBtn.getAttribute('data-durations') || '[]';
+		var durations = [];
+		try { durations = JSON.parse(durationsRaw); } catch (err) { durations = []; }
+		if (!Array.isArray(durations) || !durations.length) return;
+
+		var selectedMonth = parseInt((activeDurationBtn && activeDurationBtn.getAttribute('data-pd-month')) || pdBuyBtn.getAttribute('data-pd-selected-month') || '', 10);
+		var selected = null;
+		if (!isNaN(selectedMonth)) {
+			selected = durations.find(function (d) { return parseInt(d.months, 10) === selectedMonth; }) || null;
+		}
+		if (!selected) {
+			selected = durations.find(function (d) { return String(d.is_default || '0') === '1'; }) || durations[0];
+		}
+		if (!selected) return;
+
+		var monthly = parsePdNumber(selected.price);
+		var months = parseInt(selected.months, 10);
+		if (isNaN(months) || months < 1) months = 1;
+		var baseTotal = monthly * months;
+		var couponDiscount = parsePdNumber(pdBuyBtn.getAttribute('data-pd-coupon-discount') || '0');
+		if (couponDiscount < 0) couponDiscount = 0;
+		if (couponDiscount > baseTotal) couponDiscount = baseTotal;
+		var total = baseTotal - couponDiscount;
+
+		var netEl = document.querySelector('[data-pd-live-net]');
+		var couponEl = document.querySelector('[data-pd-live-coupon]');
+		var totalEl = document.querySelector('[data-pd-live-total]');
+		var monthlyEl = document.querySelector('[data-pd-live-monthly]');
+		animatePdPrice(netEl, monthly, ' / month');
+		animatePdPrice(couponEl, couponDiscount, '');
+		animatePdPrice(totalEl, total, '');
+		animatePdPrice(monthlyEl, monthly, ' ต่อเดือน');
+
+		pdBuyBtn.setAttribute('data-price-text', formatPdTHB(total));
+	}
+
 	document.addEventListener('click', function (e) {
 		var pdDurationBtn = e.target.closest('.apptook-ds-pd-duration-pill[data-pd-month]');
 		if (pdDurationBtn) {
@@ -738,6 +816,7 @@
 			if (pdBuyBtn) {
 				pdBuyBtn.setAttribute('data-pd-selected-month', pdDurationBtn.getAttribute('data-pd-month') || '');
 			}
+			updateProductDetailLivePrice(pdDurationBtn);
 			return;
 		}
 
@@ -753,6 +832,7 @@
 			if (pdBuyBtnType) {
 				pdBuyBtnType.setAttribute('data-pd-selected-type', pdAccountBtn.getAttribute('data-type-key') || '');
 			}
+			updateProductDetailLivePrice(document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]'));
 			return;
 		}
 
@@ -772,16 +852,55 @@
 			e.preventDefault();
 			var panel = document.querySelector('[data-pd-promo-panel]');
 			var icon = document.querySelector('[data-pd-promo-icon]');
+			var wrap = document.querySelector('[data-pd-promo-wrap]');
 			if (panel) {
 				var isHidden = panel.hasAttribute('hidden');
 				if (isHidden) {
 					panel.removeAttribute('hidden');
+					if (wrap) wrap.classList.add('is-open');
 				} else {
 					panel.setAttribute('hidden', 'hidden');
+					if (wrap) wrap.classList.remove('is-open');
 				}
 				if (icon) {
 					icon.textContent = isHidden ? 'expand_less' : 'expand_more';
 				}
+			}
+			return;
+		}
+
+		var promoApplyBtn = e.target.closest('[data-pd-promo-apply]');
+		if (promoApplyBtn) {
+			e.preventDefault();
+			var promoInput = document.querySelector('[data-pd-promo-input]');
+			var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
+			var pdBuyBtnPromo = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+			if (pdBuyBtnPromo) {
+				var activeDuration = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
+				var durationsRawPromo = pdBuyBtnPromo.getAttribute('data-durations') || '[]';
+				var durationsPromo = [];
+				try { durationsPromo = JSON.parse(durationsRawPromo); } catch (errPromo) { durationsPromo = []; }
+				var selectedMonthPromo = parseInt((activeDuration && activeDuration.getAttribute('data-pd-month')) || pdBuyBtnPromo.getAttribute('data-pd-selected-month') || '', 10);
+				var selectedDurationPromo = null;
+				if (!isNaN(selectedMonthPromo)) {
+					selectedDurationPromo = durationsPromo.find(function (d) { return parseInt(d.months, 10) === selectedMonthPromo; }) || null;
+				}
+				if (!selectedDurationPromo) {
+					selectedDurationPromo = durationsPromo.find(function (d) { return String(d.is_default || '0') === '1'; }) || durationsPromo[0] || null;
+				}
+				var monthlyPromo = selectedDurationPromo ? parsePdNumber(selectedDurationPromo.price) : 0;
+				var monthsPromo = selectedDurationPromo ? parseInt(selectedDurationPromo.months, 10) : 1;
+				if (isNaN(monthsPromo) || monthsPromo < 1) monthsPromo = 1;
+				var baseTotalPromo = monthlyPromo * monthsPromo;
+				var discount = 0;
+				if (code === 'SAVE10') {
+					discount = Math.round(baseTotalPromo * 0.1 * 100) / 100;
+				} else if (code === 'LESS50') {
+					discount = 50;
+				}
+				if (discount > baseTotalPromo) discount = baseTotalPromo;
+				pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', String(discount));
+				updateProductDetailLivePrice(activeDuration);
 			}
 			return;
 		}
@@ -869,5 +988,12 @@
 			triggerBtn: buyBtn
 		});
 	});
+
+	var initialPdActive = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
+	if (initialPdActive) {
+		updateProductDetailLivePrice(initialPdActive);
+	} else {
+		updateProductDetailLivePrice(null);
+	}
 
 })();

@@ -17,7 +17,7 @@
 	--st-primary: rgb(65, 225, 227);
 	--st-outline: #6c7a7a;
 	--st-outline-variant: #bbc9c9;
-	--st-font-text: "Kanit", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--st-font-text: "Kanit", sans-serif;
 	color: var(--st-on-surface);
 	font-family: var(--st-font-text);
 	font-size: 16px;
@@ -159,6 +159,99 @@ body.admin-bar .apptook-stitch .st-nav {
 
 .apptook-stitch .st-nav__mobile-panel {
 	display: none;
+}
+
+.apptook-stitch .buyer-ticker-track {
+	position: fixed;
+	top: 4rem;
+	left: 0;
+	right: 0;
+	z-index: 49;
+	background: rgba(255, 255, 255, 0.95);
+	color: #475569;
+	overflow: hidden;
+	border-top: 1px solid #e2e8f0;
+	border-bottom: 1px solid #e2e8f0;
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+}
+
+body.admin-bar .apptook-stitch .buyer-ticker-track {
+	top: calc(4rem + 32px);
+}
+
+@media screen and (max-width: 782px) {
+	body.admin-bar .apptook-stitch .buyer-ticker-track {
+		top: calc(4rem + 46px);
+	}
+}
+
+.apptook-stitch .buyer-ticker-track.py-2 {
+	padding-top: 1.5rem;
+	padding-bottom: 0.5rem;
+}
+
+.apptook-stitch .buyer-ticker-track__inner {
+	display: inline-flex;
+	align-items: center;
+	gap: 1.6rem;
+	white-space: nowrap;
+	padding-left: 100%;
+	animation: apptookBuyerTickerMove 100s linear infinite;
+	will-change: transform;
+}
+
+.apptook-stitch .buyer-ticker-track__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.82rem;
+	font-weight: 600;
+	padding: 0 0.35rem;
+}
+
+.apptook-stitch .buyer-ticker-track__buyer {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #334155;
+}
+
+.apptook-stitch .buyer-ticker-track__action {
+	font-size: 0.74rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+
+.apptook-stitch .buyer-ticker-track__product {
+	font-size: 0.74rem;
+	font-weight: 600;
+	color: #64748b;
+}
+
+.apptook-stitch .buyer-ticker-track__time {
+	font-size: 0.72rem;
+	font-weight: 500;
+	color: #94a3b8;
+}
+
+.apptook-stitch .buyer-ticker-track__item::after {
+	content: '•';
+	margin-left: 0.65rem;
+	color: #cbd5e1;
+}
+
+.apptook-stitch .buyer-ticker-track:hover .buyer-ticker-track__inner,
+.apptook-stitch .buyer-ticker-track:focus-within .buyer-ticker-track__inner {
+	animation-play-state: paused;
+}
+
+@keyframes apptookBuyerTickerMove {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-100%);
+	}
 }
 
 .apptook-stitch .st-nav__icons {
@@ -326,7 +419,7 @@ body.admin-bar .apptook-stitch .st-nav {
 
 /* ---- Main ---- */
 .apptook-stitch .st-main {
-	padding-top: 6rem;
+	padding-top: 8.2rem;
 	padding-bottom: 5rem;
 	background: var(--st-surface);
 	flex: 1;
@@ -336,7 +429,7 @@ body.admin-bar .apptook-stitch .st-nav {
 .apptook-stitch .apptook-ds-library,
 .apptook-stitch .apptook-st-register {
 	flex: 1;
-	padding-top: 6rem;
+	padding-top: 8.2rem;
 	padding-left: 1rem;
 	padding-right: 1rem;
 	padding-bottom: 2rem;
@@ -667,40 +760,102 @@ body.admin-bar .apptook-stitch .st-nav {
 /* Wave bar — path เดียวกับ stitch */
 .apptook-stitch .card-wave-bg {
 	position: relative;
+	background-image: url("../images/bg-price.png");
+	background-position: center bottom;
+	background-repeat: no-repeat;
+	background-size: cover;
 	background-color: rgb(65, 225, 227);
 	padding-top: 2rem;
 	padding-bottom: 1.5rem;
 	text-align: center;
+	overflow: hidden;
 }
 
 .apptook-stitch .card-wave-bg::before {
-	content: "";
+	display: none;
+}
+
+.apptook-stitch .st-card-price-buyer-wrap {
+	overflow: hidden;
+	margin: -0.55rem auto 0.32rem;
+	max-width: 98%;
+	padding: 0.08rem 0;
+	min-height: 1.05rem;
+}
+
+.apptook-stitch .st-card-price-buyer-track {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.05rem;
+}
+
+.apptook-stitch .st-card-price-buyer-item {
 	position: absolute;
-	top: -24px;
-	left: 0;
-	width: 100%;
-	height: 25px;
-	background-color: rgb(65, 225, 227);
-	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23000' fill-opacity='1' d='M0,224L120,213.3C240,203,480,181,720,181.3C960,181,1200,203,1320,213.3L1440,224L1440,320L1320,320C1200,320,960,320,720,320C480,320,240,320,120,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23000' fill-opacity='1' d='M0,224L120,213.3C240,203,480,181,720,181.3C960,181,1200,203,1320,213.3L1440,224L1440,320L1320,320C1200,320,960,320,720,320C480,320,240,320,120,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-	mask-size: cover;
-	-webkit-mask-size: cover;
-	mask-repeat: no-repeat;
-	-webkit-mask-repeat: no-repeat;
+	left: 50%;
+	top: 50%;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	max-width: 100%;
+	font-size: 0.68rem;
+	font-weight: 600;
+	color: #475569;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+	white-space: nowrap;
+	opacity: 0;
+	transform: translate(-50%, calc(-50% + 10px));
+	pointer-events: none;
+	transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.apptook-stitch .st-card-price-buyer-item strong,
+.apptook-stitch .st-card-price-buyer-item em {
+	display: inline-block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.apptook-stitch .st-card-price-buyer-item em {
+	font-style: normal;
+	font-weight: 500;
+	color: #64748b;
+	margin-left: 0.2rem;
+}
+
+.apptook-stitch .st-card-price-buyer-item.is-active {
+	opacity: 1;
+}
+
+.apptook-stitch .st-card-price-buyer-item.is-active.is-entering {
+	transform: translate(-50%, -50%);
+}
+
+.apptook-stitch .st-card-price-buyer-item .material-symbols-outlined {
+	font-size: 0.85rem;
+	color: #64748b;
 }
 
 .apptook-stitch .st-card-price {
-	color: #fff;
-	font-size: 1.5rem;
-	font-weight: 700;
-	letter-spacing: -0.025em;
+	color: #ffffff;
+	font-size: 30px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	line-height: 1;
+	text-align: center;
+	text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.18);
 }
 
 .apptook-stitch .st-card-price span {
-	font-size: 0.875rem;
+	font-size: 18px;
 	font-weight: 400;
-	opacity: 0.8;
+	line-height: 1;
+	white-space: nowrap;
+	opacity: 0.98;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
+
 
 .apptook-stitch .st-card-body {
 	flex: 1;
@@ -763,11 +918,16 @@ body.admin-bar .apptook-stitch .st-nav {
 	text-transform: uppercase;
 	font-family: var(--st-font-text);
 	cursor: pointer;
-	transition: opacity 0.15s ease;
+	transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
 }
 
 .apptook-stitch .buy-btn:hover:not(:disabled) {
-	opacity: 0.9;
+	background: #34d9db;
+	box-shadow: 0 10px 20px rgba(65, 225, 227, 0.28);
+}
+
+.apptook-stitch .buy-btn:active:not(:disabled) {
+	transform: scale(0.98);
 }
 
 .apptook-stitch .buy-btn:disabled {
@@ -1344,7 +1504,7 @@ body.admin-bar .apptook-stitch .st-nav {
 /* ---- My Subscription page ---- */
 .apptook-stitch .apptook-my-subscription {
 	background: var(--st-surface);
-	padding-top: 7rem;
+	padding-top: 8.2rem;
 	padding-bottom: 4rem;
 }
 
@@ -1358,6 +1518,7 @@ body.admin-bar .apptook-stitch .st-nav {
 
 .apptook-stitch .apptook-my-subscription__head {
 	margin-bottom: 1.5rem;
+	margin-top: 1.5rem;
 }
 
 .apptook-stitch .apptook-my-subscription__head--with-action {
@@ -1434,7 +1595,7 @@ body.admin-bar .apptook-stitch .st-nav {
 .apptook-stitch .apptook-my-subscription__panel {
 	background: #fff;
 	border: 1px solid #e8efef;
-	border-radius: 1.5rem;
+	border-radius: 2rem;
 	padding: 1rem;
 	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
@@ -1463,8 +1624,38 @@ body.admin-bar .apptook-stitch .st-nav {
 	line-height: 1.3;
 }
 
-.apptook-stitch .apptook-my-subscription__panel p {
-	margin: 0.4rem 0 0;
+.apptook-stitch .apptook-my-subscription__panel-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.65rem;
+	margin-bottom: 2rem;
+}
+
+.apptook-stitch .apptook-my-subscription__panel-head h2 {
+	margin: 0;
+}
+
+.apptook-stitch .apptook-my-subscription__count-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.38rem 0.7rem;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--st-primary) 18%, #ffffff);
+	color: color-mix(in srgb, var(--st-primary) 72%, #0891b2);
+	font-size: 0.78rem;
+	font-weight: 700;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.apptook-stitch .apptook-my-subscription__count-pill .material-symbols-outlined {
+	font-size: 0.95rem;
+}
+
+.apptook-stitch .apptook-my-subscription__panel > p {
+	margin: 1rem 0 0;
 	color: var(--st-on-surface-variant);
 }
 
@@ -1477,8 +1668,8 @@ body.admin-bar .apptook-stitch .st-nav {
 .apptook-stitch .apptook-my-subscription__item {
 	background: var(--st-surface-container-lowest);
 	border: 1px solid #edf2f2;
-	border-radius: 1.1rem;
-	padding: 0.9rem;
+	border-radius: 2rem;
+	padding: 2rem;
 }
 
 .apptook-stitch .apptook-my-subscription__item-head {
@@ -1487,6 +1678,23 @@ body.admin-bar .apptook-stitch .st-nav {
 	align-items: flex-start;
 	gap: 0.75rem;
 	margin-bottom: 0.75rem;
+}
+
+.apptook-stitch .apptook-my-subscription__item-head-main {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	min-width: 0;
+}
+
+.apptook-stitch .apptook-my-subscription__product-thumb {
+	width: 48px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 0.9rem;
+	border: 1px solid #e2e8f0;
+	background: #fff;
+	flex: 0 0 48px;
 }
 
 .apptook-stitch .apptook-my-subscription__item-head h3 {
@@ -1543,23 +1751,56 @@ body.admin-bar .apptook-stitch .st-nav {
 	}
 }
 
+.apptook-stitch .apptook-my-subscription__meta-card {
+	background: rgb(239 245 244 / var(--tw-bg-opacity, 1));
+	border: 1px solid #e5e7eb;
+	border-radius: 1.5rem;
+	padding: 1.2rem 1.5rem;
+}
+
 .apptook-stitch .apptook-my-subscription__meta-label {
 	margin: 0;
 	font-size: 0.72rem;
+	line-height: 1.1;
 	color: var(--st-on-surface-variant);
 }
 
 .apptook-stitch .apptook-my-subscription__meta-value {
-	margin: 0.15rem 0 0;
+	margin: 0.4rem 0 0;
 	font-size: 0.88rem;
 	font-weight: 600;
+	line-height: 1.15;
 	color: var(--st-on-surface);
 }
 
-.apptook-stitch .apptook-my-subscription__license {
+.apptook-stitch .apptook-my-subscription__meta-value--alert.is-safe {
+	color: #166534;
+}
+
+.apptook-stitch .apptook-my-subscription__meta-value--alert.is-warning {
+	color: #92400e;
+}
+
+.apptook-stitch .apptook-my-subscription__meta-value--alert.is-danger {
+	color: #991b1b;
+}
+
+.apptook-stitch .apptook-my-subscription__license-row {
 	margin: 0.75rem 0 0;
-	padding-top: 0.75rem;
+	padding-top: 1.5rem;
 	border-top: 1px solid #eef3f3;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.9rem;
+}
+
+.apptook-stitch .apptook-my-subscription__license-row .apptook-my-subscription__license {
+	flex: 1;
+}
+
+.apptook-stitch .apptook-my-subscription__license {
+	margin: 0;
 	font-size: 0.8rem;
 	color: var(--st-on-surface-variant);
 	overflow-wrap: anywhere;
@@ -1572,6 +1813,29 @@ body.admin-bar .apptook-stitch .st-nav {
 	border-radius: 0.4rem;
 	background: #f1f5f9;
 	color: #0f172a;
+}
+
+.apptook-stitch .apptook-my-subscription__howto-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 34px;
+	padding: 0 0.9rem;
+	border-radius: 999px;
+	border: 1px solid #14b8a6;
+	background: #ccfbf1;
+	color: #0f766e;
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: all 0.18s ease;
+}
+
+.apptook-stitch .apptook-my-subscription__howto-btn:hover {
+	background: #99f6e4;
+	border-color: #0d9488;
+	color: #115e59;
 }
 
 .apptook-stitch .apptook-my-subscription__summary {
@@ -1636,16 +1900,21 @@ body.admin-bar .apptook-stitch .st-nav {
 /* ---- Order History page ---- */
 .apptook-stitch .apptook-order-history {
 	background: var(--st-surface);
-	padding-top: 7rem;
-	padding-bottom: 4rem;
+	padding-top: 8.2rem;
+	padding-bottom: 0;
 }
 
 .apptook-stitch .apptook-order-history__container {
 	width: 100%;
 	max-width: 1280px;
 	margin: 0 auto;
+	margin-top: 50px;
 	padding-left: 1.5rem;
 	padding-right: 1.5rem;
+	min-height: calc(100vh - 13.5rem);
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 0;
 }
 
 .apptook-stitch .apptook-order-history__head {
@@ -1674,7 +1943,7 @@ body.admin-bar .apptook-stitch .st-nav {
 .apptook-stitch .apptook-order-history__panel {
 	background: #fff;
 	border: 1px solid #e8efef;
-	border-radius: 1.5rem;
+	border-radius: 2rem;
 	padding: 1rem;
 	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
@@ -1703,6 +1972,12 @@ body.admin-bar .apptook-stitch .st-nav {
 	line-height: 1.3;
 }
 
+.apptook-stitch .apptook-order-history__panel h3 {
+	margin: 0;
+	font-size: 1.05rem;
+	line-height: 1.3;
+}
+
 .apptook-stitch .apptook-order-history__panel p {
 	margin: 0.4rem 0 0;
 	color: var(--st-on-surface-variant);
@@ -1714,6 +1989,158 @@ body.admin-bar .apptook-stitch .st-nav {
 	justify-content: center;
 	gap: 0.75rem;
 	flex-wrap: wrap;
+}
+
+.apptook-stitch .apptook-order-history__panel--filter {
+	margin-bottom: 1rem;
+}
+
+.apptook-stitch .apptook-order-history__filters {
+	margin-top: 0.85rem;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.apptook-stitch .apptook-order-history__filters label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-size: 0.78rem;
+	color: var(--st-on-surface-variant);
+}
+
+.apptook-stitch .apptook-order-history__date-input {
+	width: 100%;
+	min-height: 46px;
+	padding: 0.65rem 0.9rem;
+	border-radius: 2rem;
+	border: 1px solid #d7e1ea;
+	background: #fff;
+	color: #334155;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	accent-color: var(--st-primary);
+}
+
+.apptook-stitch .apptook-order-history__date-input:focus,
+.apptook-stitch .apptook-order-history__date-input:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(65, 225, 227, 0.22);
+	border-color: color-mix(in srgb, var(--st-primary) 46%, #d7e1ea);
+}
+
+.apptook-stitch .apptook-order-history__date-input::-webkit-calendar-picker-indicator {
+	cursor: pointer;
+	opacity: 0.9;
+	filter: saturate(0.85) contrast(1.05);
+}
+
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit,
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit-fields-wrapper,
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit-text,
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit-month-field,
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit-day-field,
+.apptook-stitch .apptook-order-history__date-input::-webkit-datetime-edit-year-field {
+	color: #334155;
+}
+
+.apptook-order-calendar {
+	position: absolute;
+	z-index: 100;
+	width: min(320px, calc(100vw - 1.5rem));
+	background: #fff;
+	border: 1px solid #d7e1ea;
+	border-radius: 1.25rem;
+	box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14);
+	padding: 0.85rem;
+}
+
+.apptook-order-calendar__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.6rem;
+}
+
+.apptook-order-calendar__head strong {
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: #1e293b;
+}
+
+.apptook-order-calendar__head button {
+	width: 32px;
+	height: 32px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--st-surface-container-low);
+	color: #334155;
+	font-size: 1.05rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.apptook-order-calendar__head button:hover {
+	background: #dffbfb;
+	color: #0f172a;
+}
+
+.apptook-order-calendar__week,
+.apptook-order-calendar__grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.35rem;
+}
+
+.apptook-order-calendar__week {
+	margin-bottom: 0.35rem;
+}
+
+.apptook-order-calendar__week span {
+	text-align: center;
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: #64748b;
+}
+
+.apptook-order-calendar__day {
+	width: 34px;
+	height: 34px;
+	min-height: 34px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #334155;
+	font-size: 0.82rem;
+	font-weight: 600;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	justify-self: center;
+}
+
+.apptook-order-calendar__day:hover {
+	background: #dffbfb;
+	color: #0f172a;
+}
+
+.apptook-order-calendar__day.is-today {
+	background: #41e1e3;
+	color: #ffffff;
+	box-shadow: 0 0 0 2px rgba(65, 225, 227, 0.22);
+}
+
+.apptook-order-calendar__day.is-active {
+	background: #11cdd0;
+	color: #ffffff;
+}
+
+.apptook-order-calendar__day.is-today.is-active {
+	background: #0fb9bc;
+	color: #ffffff;
 }
 
 .apptook-stitch .apptook-order-history__btn,
@@ -1775,6 +2202,50 @@ body.admin-bar .apptook-stitch .st-nav {
 	color: #991b1b;
 }
 
+.apptook-stitch .apptook-order-history__empty {
+	margin: 0.85rem 0 0;
+	font-size: 0.9rem;
+	color: var(--st-on-surface-variant);
+}
+
+.apptook-stitch .apptook-order-history__summary-grid {
+	margin-top: 1rem;
+	padding-top: 0.9rem;
+	border-top: 1px solid #eef3f3;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.apptook-stitch .apptook-order-history__summary-box {
+	padding: 0.8rem;
+	border-radius: 2rem;
+	background: var(--st-surface-container-low);
+}
+
+.apptook-stitch .apptook-order-history__summary-box p {
+	margin: 0;
+	font-size: 0.76rem;
+	color: var(--st-on-surface-variant);
+}
+
+.apptook-stitch .apptook-order-history__summary-box strong {
+	display: block;
+	margin-top: 0.2rem;
+	font-size: 1.1rem;
+	line-height: 1.2;
+	color: var(--st-on-surface);
+}
+
+.apptook-stitch .apptook-order-history__summary-box--highlight {
+	background: color-mix(in srgb, var(--st-primary) 12%, #fff);
+	border: 1px solid color-mix(in srgb, var(--st-primary) 26%, #dbe5e5);
+}
+
+.apptook-stitch .apptook-order-history__summary-box--highlight strong {
+	color: var(--st-primary);
+}
+
 .apptook-stitch .apptook-order-history a:focus-visible,
 .apptook-stitch .apptook-order-history button:focus-visible {
 	outline: 2px solid var(--st-primary);
@@ -1785,6 +2256,15 @@ body.admin-bar .apptook-stitch .st-nav {
 	.apptook-stitch .apptook-order-history__head--with-action {
 		flex-direction: column;
 		align-items: flex-start;
+	}
+
+	.apptook-stitch .apptook-order-history__filters,
+	.apptook-stitch .apptook-order-history__summary-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.apptook-stitch .apptook-order-history__container {
+		min-height: calc(100vh - 11rem);
 	}
 }
 
@@ -1802,7 +2282,6 @@ body.admin-bar .apptook-stitch .st-nav {
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-icon-wrap,
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-thumb,
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-meta-item,
-.apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-duration-pill,
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-type-chip,
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-buy-btn,
 .apptook-stitch.apptook-ds-product-detail-page .apptook-ds-pd-chat-btn {
@@ -1810,12 +2289,9 @@ body.admin-bar .apptook-stitch .st-nav {
 }
 
 .apptook-stitch .apptook-ds-pd-wrap {
-	max-width: 1460px;
+	max-width: 1280px;
 	margin: 0 auto;
-	padding-top: 0px;
-    padding-right: 1.5rem;
-    padding-bottom: 250px;
-    padding-left: 6.5rem;
+	padding: 2.2rem 1.25rem 5rem;
 }
 
 .apptook-stitch .apptook-ds-pd-back-wrap {
@@ -1850,9 +2326,9 @@ body.admin-bar .apptook-stitch .st-nav {
 }
 .apptook-stitch .apptook-ds-pd-grid {
 	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(560px, 1.25fr);
-	gap: 1.6rem;
-	align-items: stretch;
+	grid-template-columns: minmax(0, 1.78fr) minmax(0, 1fr);
+	gap: 1.35rem;
+	align-items: start;
 }
 
 .apptook-stitch .apptook-ds-pd-main {
@@ -1975,19 +2451,29 @@ body.admin-bar .apptook-stitch .st-nav {
 }
 
 .apptook-stitch .apptook-ds-pd-side {
-	position: relative;
-	display: flex;
-	min-height: 100%;
+	position: sticky;
+	top: 8.35rem;
+	align-self: start;
+	height: max-content;
+}
+
+body.admin-bar .apptook-stitch .apptook-ds-pd-side {
+	top: calc(8.35rem + 32px);
+}
+
+@media screen and (max-width: 782px) {
+	body.admin-bar .apptook-stitch .apptook-ds-pd-side {
+		top: calc(8.35rem + 46px);
+	}
 }
 
 .apptook-stitch .apptook-ds-pd-purchase-card {
-	position: sticky;
-	top: 6.3rem;
-	padding: 1rem 3rem;
-	height: 100%;
-	min-height: 100%;
-	display: flex;
-	flex-direction: column;
+	position: relative;
+	padding: 1rem 1rem 0.95rem;
+	border-radius: 1.35rem;
+	display: grid;
+	gap: 0.72rem;
+	align-content: start;
 }
 
 .apptook-stitch .apptook-ds-pd-price-label {
@@ -2122,30 +2608,645 @@ body.admin-bar .apptook-stitch .st-nav {
 	color: #334155;
 }
 
-.apptook-stitch .apptook-ds-pd-trust {
-	margin-top: auto;
-	padding-top: 0.8rem;
-	border-top: 1px solid #f1f5f9;
+.apptook-stitch .apptook-ds-pd-config-card {
+	border: 1px solid #dce6eb;
+	border-radius: 1.6rem;
+	background: #fff;
+	padding: 1.1rem 1.1rem 0.9rem;
 	display: grid;
-	gap: 0.42rem;
+	gap: 0.9rem;
 }
 
-.apptook-stitch .apptook-ds-pd-trust p {
+.apptook-stitch .apptook-ds-pd-config-head p {
 	margin: 0;
-	font-size: 0.84rem;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: #1e293b;
+}
+
+.apptook-stitch .apptook-ds-pd-config-head span {
+	display: block;
+	margin-top: 0.24rem;
+	font-size: 0.86rem;
 	color: #64748b;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill {
+	position: relative;
+	padding: 0.5rem 0.4rem 1.15rem;
+	border-radius: 1rem !important;
+	border: 1.5px solid #e8e8eb;
+	background: #f4f4f6;
+	color: #13294b;
+	font-size: 0.76rem;
+	font-weight: 500;
+	min-height: 62px;
+	overflow: hidden;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill .month-title {
+	position: relative;
+	z-index: 1;
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill::after {
+	content: "Subscribe";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	font-size: 11px;
+	line-height: 1;
+	padding: 0.32rem 0.3rem 0.4rem;
+	background: rgba(0, 0, 0, 0.07);
+	color: #8f95a3;
+	font-weight: 600;
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill.is-active {
+	border-color: rgb(65, 225, 227);
+	background: #fff;
+	color: rgb(15, 77, 87);
+	box-shadow: inset 0 0 0 1px rgba(65, 225, 227, 0.35);
+}
+
+.apptook-stitch .apptook-ds-pd-duration-pill.is-active::after {
+	background: rgb(65, 225, 227);
+	color: rgb(15, 77, 87);
+}
+
+.apptook-stitch .apptook-ds-pd-overview-card {
+	border: 1px solid #d9cffa;
+	border-radius: 1.85rem;
+	background: #fbfafc;
+	padding: 1.45rem 1.5rem 1.6rem;
+	box-shadow: 0 0 0 1px rgba(187, 168, 251, 0.08) inset;
+}
+
+.apptook-stitch .apptook-ds-pd-overview-head p {
+	margin: 0;
+	font-size: 0.86rem;
+	line-height: 1.1;
+	text-transform: uppercase;
+	letter-spacing: 0.11em;
+	font-weight: 700;
+	color: #6938ef;
+}
+
+.apptook-stitch .apptook-ds-pd-overview-head h2 {
+	margin: 0.48rem 0 0;
+	font-size: 2.05rem;
+	line-height: 1.05;
+	letter-spacing: -0.025em;
+	font-weight: 800;
+	color: #0b1735;
+}
+
+.apptook-stitch .apptook-ds-pd-overview-head span {
+	display: block;
+	margin-top: 0.46rem;
+	font-size: 0.95rem;
+	line-height: 1.5;
+	font-weight: 500;
+	color: #51607d;
+}
+
+.apptook-stitch .apptook-ds-pd-overview-summary {
+	margin: 1.25rem 0 0;
+	font-size: 1.03rem;
+	line-height: 1.68;
+	font-weight: 500;
+	color: #22304a;
+}
+
+.apptook-stitch .apptook-ds-pd-feature-list {
+	margin-top: 1.2rem;
+	gap: 0.85rem;
+}
+
+.apptook-stitch .apptook-ds-pd-feature-list li {
+	padding: 0.9rem 1rem;
+	border-radius: 999px;
+	background: #f9fafc;
+	border: 1px solid #dde5f0;
+	font-size: 0.98rem;
+	line-height: 1.45;
+	font-weight: 500;
+	color: #253450;
+}
+
+.apptook-stitch .apptook-ds-pd-overview-card .apptook-ds-pd-feature-list .material-symbols-outlined {
+	font-size: 1rem;
+	color: #6d28d9;
+	margin-top: 0.03rem;
+}
+
+.apptook-stitch .apptook-ds-pd-purchase-card {
+	padding: 1.2rem 1.15rem;
+	border-radius: 1.7rem;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-lines {
+	display: grid;
+	gap: 0.36rem;
+	padding: 0.28rem 0.15rem 0.15rem;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.65rem;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) {
+	color: #64748b;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) .detail-muted-label,
+.apptook-stitch .apptook-ds-pd-summary-row:not(.is-grand) .apptook-ds-pd-summary-value {
+	color: #64748b;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-row:nth-child(2) {
+	padding-bottom: 0.52rem;
+	margin-bottom: 0.15rem;
+	border-bottom: 1px solid #d9e1ea;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-value {
+	font-size: 0.95rem;
+	font-weight: 500;
+	color: #334155;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-row.is-grand {
+	margin-top: 0.2rem;
+}
+
+.apptook-stitch .apptook-ds-pd-summary-total {
+	font-size: 1.55rem;
+	line-height: 1;
+	font-weight: 400;
+	color: var(--st-primary);
+}
+
+.apptook-stitch .apptook-ds-pd-total-monthly {
+	margin: 0.15rem 0 0;
+	text-align: right;
+	font-size: 0.72rem;
+	color: #94a3b8;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-wrap {
+	margin-top: 0.45rem;
+	margin-bottom: 0.15rem;
+	padding: 0.58rem 0.62rem;
+	border-radius: 0.9rem;
+	border: 1px solid #e2e8f0;
+	background: #ffffff;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-toggle {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border: 0;
+	background: transparent;
+	padding: 0;
+	font-size: 0.82rem;
+	font-weight: 500;
+	color: #1f2937;
+	cursor: pointer;
+	text-align: left;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-panel {
+	margin-top: 0.48rem;
+	padding: 0.55rem;
+	border-radius: 0.85rem;
+	border: 1px solid #e2e8f0;
+	background: #fff;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-row {
+	display: flex;
+	gap: 0.45rem;
+}
+
+.apptook-stitch .apptook-ds-pd-promo-input {
+	flex: 1;
+	padding: 0.58rem 0.72rem;
+	border-radius: 0.65rem;
+	border: 1px solid #cbd5e1;
+	font-size: 0.76rem;
+	font-family: var(--st-font-text);
+}
+
+.apptook-stitch .apptook-ds-pd-promo-input:focus {
+	outline: none;
+	border-color: #41e1e3;
+	box-shadow: 0 0 0 2px rgba(65, 225, 227, 0.2);
+}
+
+.apptook-stitch .apptook-ds-pd-promo-apply {
+	padding: 0.58rem 0.8rem;
+	border-radius: 0.65rem;
+	border: 0;
+	background: #41e1e3;
+	color: #fff;
+	font-size: 0.74rem;
+	font-weight: 600;
+	font-family: var(--st-font-text);
+}
+
+.apptook-stitch .apptook-ds-pd-buy-btn,
+.apptook-stitch .apptook-ds-pd-chat-btn {
+	border-radius: 999px;
+	min-height: 50px;
+	font-size: 0.95rem;
+	font-weight: 600;
+	transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.apptook-stitch .apptook-ds-pd-buy-btn {
+	background: var(--st-primary);
+	box-shadow: 0 10px 20px rgba(65, 225, 227, 0.25);
+	margin: 0.72rem 0 0.42rem;
+}
+
+.apptook-stitch .apptook-ds-pd-buy-btn:hover {
+	background: #34d9db;
+	box-shadow: 0 12px 22px rgba(65, 225, 227, 0.3);
+}
+
+.apptook-stitch .apptook-ds-pd-buy-btn:active {
+	transform: scale(0.98);
+}
+
+.apptook-stitch .apptook-ds-pd-chat-btn {
+	border: 1px solid #d6dde5;
+	background: #ffffff;
+	color: #475569;
+}
+
+.apptook-stitch .apptook-ds-pd-chat-btn:hover {
+	border-color: #8ee7e9;
+	color: #0f4d57;
+	background: #f8ffff;
+}
+
+.apptook-stitch .apptook-ds-pd-choice-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.apptook-stitch .apptook-ds-pd-choice-btn {
+	padding: 0.45rem 0.72rem;
+	border-radius: 0.7rem;
+	border: 1px solid #d6dde5;
+	background: #ffffff;
+	color: #475569;
+	font-size: 0.78rem;
+	line-height: 1.1;
+	font-weight: 500;
+	transition: all 0.18s ease;
+	cursor: pointer;
+	font-family: var(--st-font-text);
+}
+
+.apptook-stitch .apptook-ds-pd-choice-btn:hover {
+	border-color: #8ee7e9;
+	color: #0f4d57;
+	background: #f8ffff;
+}
+
+.apptook-stitch .apptook-ds-pd-choice-btn.is-active {
+	border-color: rgb(65, 225, 227);
+	background: rgba(65, 225, 227, 0.16);
+	color: rgb(15, 77, 87);
+	box-shadow: inset 0 0 0 1px rgba(65, 225, 227, 0.32);
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer {
+	margin-top: 0.86rem;
+	padding-top: 0.86rem;
+	border-top: 1px solid #edf2f7;
+	display: grid;
+	gap: 0.55rem;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-head span {
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-head a {
+	font-size: 0.68rem;
+	color: #94a3b8;
+	text-decoration: none;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-ticker-wrap {
+	overflow: hidden;
+	border-radius: 0.85rem;
+	background: #f1f5f9;
+	padding: 0.45rem 0.55rem;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-ticker {
+	display: inline-flex;
+	align-items: center;
+	gap: 1.1rem;
+	width: max-content;
+	white-space: nowrap;
+	animation: apptookPdRecentTicker 22s linear infinite;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-inline-item {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.35rem;
+	font-size: 0.72rem;
+	color: #475569;
 }
 
-.apptook-stitch .apptook-ds-pd-trust .material-symbols-outlined {
-	font-size: 1.02rem;
+.apptook-stitch .apptook-ds-pd-recent-buyer-inline-item .material-symbols-outlined {
+	font-size: 1rem;
+	color: #f59e0b;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-inline-item strong {
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.apptook-stitch .apptook-ds-pd-recent-buyer-inline-item em {
+	font-style: normal;
+	color: #64748b;
+}
+
+@keyframes apptookPdRecentTicker {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-50%);
+	}
+}
+
+/* ---- Blog page (Stitch-like) ---- */
+.apptook-stitch.apptook-blog-page {
+	background: var(--st-surface);
+	padding-top: 6.8rem;
+	padding-bottom: 4rem;
+}
+
+.apptook-stitch .apptook-blog-main {
+	width: 100%;
+}
+
+.apptook-stitch .apptook-blog-wrap {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 2.2rem 1.25rem 0;
+}
+
+.apptook-stitch .apptook-blog-head {
+	margin-bottom: 1.15rem;
+}
+
+.apptook-stitch .apptook-blog-head h1 {
+	margin: 0;
+	font-size: clamp(1.9rem, 3vw, 2.5rem);
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+	font-weight: 800;
+	color: #0f172a;
+}
+
+.apptook-stitch .apptook-blog-head p {
+	margin: 0.4rem 0 0;
+	font-size: 0.95rem;
+	color: #64748b;
+}
+
+.apptook-stitch .apptook-blog-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.apptook-stitch .apptook-blog-card {
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border: 1px solid #e8eef4;
+	border-radius: 2rem;
+	overflow: hidden;
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.apptook-stitch .apptook-blog-thumb-link {
+	display: block;
+	text-decoration: none;
+}
+
+.apptook-stitch .apptook-blog-thumb {
+	display: block;
+	width: 100%;
+	height: 230px;
+	object-fit: cover;
+}
+
+.apptook-stitch .apptook-blog-thumb.is-fallback {
+	height: 230px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #edf7f7;
+	color: #0f766e;
+}
+
+.apptook-stitch .apptook-blog-thumb.is-fallback .material-symbols-outlined {
+	font-size: 44px;
+}
+
+.apptook-stitch .apptook-blog-content {
+	display: grid;
+	gap: 0.55rem;
+	padding: 1rem 1rem 1.1rem;
+}
+
+.apptook-stitch .apptook-blog-date {
+	margin: 0;
+	font-size: 0.75rem;
+	color: #94a3b8;
+}
+
+.apptook-stitch .apptook-blog-content h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	line-height: 1.3;
+	font-weight: 700;
+}
+
+.apptook-stitch .apptook-blog-content h2 a {
+	color: #0f172a;
+	text-decoration: none;
+}
+
+.apptook-stitch .apptook-blog-content h2 a:hover {
+	color: var(--st-primary);
+}
+
+.apptook-stitch .apptook-blog-excerpt {
+	margin: 0;
+	font-size: 0.92rem;
+	line-height: 1.65;
+	color: #475569;
+}
+
+.apptook-stitch .apptook-blog-readmore {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: fit-content;
+	padding: 0.48rem 0.86rem;
+	border-radius: 0.75rem;
+	background: var(--st-primary);
+	color: #fff;
+	font-size: 0.82rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.apptook-stitch .apptook-blog-readmore:hover {
+	background: #34d9db;
+	box-shadow: 0 8px 18px rgba(65, 225, 227, 0.25);
+}
+
+.apptook-stitch .apptook-blog-empty {
+	padding: 1.2rem;
+	text-align: center;
+	background: #fff;
+	border: 1px solid #e8eef4;
+	border-radius: 1rem;
+	color: #64748b;
+}
+
+@media (max-width: 1200px) {
+	.apptook-stitch .apptook-blog-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* ---- Blog single ---- */
+.apptook-stitch.apptook-blog-single-page {
+	padding-bottom: 4.5rem;
+}
+
+.apptook-stitch .apptook-blog-single-wrap {
+	max-width: 980px;
+}
+
+.apptook-stitch .apptook-blog-single-back-wrap {
+	margin-bottom: 1rem;
+}
+
+.apptook-stitch .apptook-blog-single-article {
+	background: #fff;
+	border: 1px solid #e8eef4;
+	border-radius: 2rem;
+	overflow: hidden;
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.apptook-stitch .apptook-blog-single-hero {
+	background: #edf7f7;
+}
+
+.apptook-stitch .apptook-blog-single-thumb {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 430px;
+	object-fit: cover;
+}
+
+.apptook-stitch .apptook-blog-single-content-wrap {
+	padding: 1.4rem 1.4rem 1.7rem;
+}
+
+.apptook-stitch .apptook-blog-single-title {
+	margin: 0.25rem 0 1rem;
+	font-size: clamp(1.8rem, 3vw, 2.5rem);
+	line-height: 1.14;
+	letter-spacing: -0.02em;
+	color: #0f172a;
+}
+
+.apptook-stitch .apptook-blog-article-content {
+	font-size: 1rem;
+	line-height: 1.75;
+	color: #334155;
+}
+
+.apptook-stitch .apptook-blog-article-content p {
+	margin-bottom: 1rem;
+}
+
+.apptook-stitch .apptook-blog-article-content h1,
+.apptook-stitch .apptook-blog-article-content h2,
+.apptook-stitch .apptook-blog-article-content h3 {
+	margin: 1.1rem 0 0.65rem;
+	line-height: 1.3;
+	color: #0f172a;
+}
+
+.apptook-stitch .apptook-blog-article-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 1rem;
+}
+
+@media (max-width: 1024px) {
+	.apptook-stitch .apptook-blog-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 @media (max-width: 767px) {
 	.apptook-stitch .st-nav {
 		background: rgba(255, 255, 255, 0.95);
+	}
+
+	.apptook-stitch .buyer-ticker-track {
+		top: 3.7rem;
+	}
+
+	body.admin-bar .apptook-stitch .buyer-ticker-track {
+		top: calc(3.7rem + 46px);
 	}
 
 	body.admin-bar .apptook-stitch .st-nav {
@@ -2245,14 +3346,14 @@ body.admin-bar .apptook-stitch .st-nav {
 	}
 
 	.apptook-stitch .st-main {
-		padding-top: 5rem;
+		padding-top: 7.2rem;
 		padding-bottom: 2.5rem;
 	}
 
 	.apptook-stitch .apptook-ds-shop,
 	.apptook-stitch .apptook-ds-library,
 	.apptook-stitch .apptook-st-register {
-		padding-top: 5rem;
+		padding-top: 7.2rem;
 		padding-left: 0.75rem;
 		padding-right: 0.75rem;
 		padding-bottom: 1.5rem;
@@ -2393,15 +3494,17 @@ body.admin-bar .apptook-stitch .st-nav {
 	}
 
 	.apptook-stitch .apptook-ds-pd-side {
+		position: static;
 		display: block;
 		min-height: 0;
+		height: auto;
 	}
 
 	.apptook-stitch .apptook-ds-pd-purchase-card {
-		position: static;
+		position: relative;
 		height: auto;
 		min-height: 0;
-		display: block;
+		display: grid;
 	}
 
 	.apptook-stitch .apptook-ds-pd-trust {

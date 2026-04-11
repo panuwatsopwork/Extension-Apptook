@@ -2412,6 +2412,7 @@ final class Apptook_DS_Public {
 						'ui_state_icon' => $ui_state_icon,
 						'amount_text' => sprintf( '฿%s', number_format_i18n( $amount, 2 ) ),
 						'license_key' => $key,
+						'instruction_url' => $product_id > 0 ? get_permalink( $product_id ) : '',
 						'expires_ts' => (int) $expires_ts,
 						'days_left' => $days_left,
 					);
@@ -2495,7 +2496,12 @@ final class Apptook_DS_Public {
 												<div class="apptook-my-subscription__meta-card"><p class="apptook-my-subscription__meta-label"><?php esc_html_e( 'แจ้งเตือน', 'apptook-digital-store' ); ?></p><p class="apptook-my-subscription__meta-value apptook-my-subscription__meta-value--alert is-<?php echo esc_attr( $alert_state ); ?>" data-apptook-sub-alert><?php echo esc_html( sprintf( __( 'เหลือ %d วัน', 'apptook-digital-store' ), (int) $item['days_left'] ) ); ?></p></div>
 											</div>
 											<?php if ( (string) $item['license_key'] !== '' ) : ?>
-												<p class="apptook-my-subscription__license"><span><?php esc_html_e( 'License Key:', 'apptook-digital-store' ); ?></span> <code><?php echo esc_html( (string) $item['license_key'] ); ?></code></p>
+												<div class="apptook-my-subscription__license-row">
+													<p class="apptook-my-subscription__license"><span><?php esc_html_e( 'License Key:', 'apptook-digital-store' ); ?></span> <code><?php echo esc_html( (string) $item['license_key'] ); ?></code></p>
+													<?php if ( ! empty( $item['instruction_url'] ) ) : ?>
+														<a class="apptook-my-subscription__howto-btn" href="<?php echo esc_url( (string) $item['instruction_url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'วิธีการใช้งาน', 'apptook-digital-store' ); ?></a>
+													<?php endif; ?>
+												</div>
 											<?php endif; ?>
 										</article>
 									<?php endforeach; ?>

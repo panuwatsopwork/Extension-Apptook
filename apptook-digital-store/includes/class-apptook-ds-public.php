@@ -1647,11 +1647,6 @@ final class Apptook_DS_Public {
 		$date_ts   = (int) get_post_time( 'U', true, $post_id );
 		$permalink = get_permalink( $post_id );
 
-		$price_display = $price_raw !== '' ? $price_raw : '0';
-		if ( $price_display !== '' && strpos( $price_display, '฿' ) !== 0 && strpos( $price_display, 'THB' ) === false ) {
-			$price_display = '฿' . $price_display;
-		}
-
 		$buyer_inline_items = $this->get_product_buyer_ticker_items( $post_id );
 
 		$bullets = $this->get_product_bullets( $post_id );
@@ -1660,6 +1655,25 @@ final class Apptook_DS_Public {
 		$types_json = wp_json_encode( $purchase_options['types'] );
 		$type_enabled = ! empty( $purchase_options['type_enabled'] ) ? '1' : '0';
 		$duration_enabled = ! empty( $purchase_options['duration_enabled'] ) ? '1' : '0';
+
+		$display_price_number = $price_f;
+		if ( ! empty( $purchase_options['durations'] ) && is_array( $purchase_options['durations'] ) ) {
+			$default_duration = null;
+			foreach ( $purchase_options['durations'] as $duration_row ) {
+				if ( ! empty( $duration_row['is_default'] ) ) {
+					$default_duration = $duration_row;
+					break;
+				}
+			}
+			if ( ! is_array( $default_duration ) ) {
+				$default_duration = $purchase_options['durations'][0] ?? null;
+			}
+			if ( is_array( $default_duration ) && isset( $default_duration['price'] ) ) {
+				$display_price_number = (float) $default_duration['price'];
+			}
+		}
+
+		$price_display = '฿' . number_format( $display_price_number, 2 );
 
 		ob_start();
 		?>
@@ -1870,28 +1884,36 @@ final class Apptook_DS_Public {
 	}
 
 	private function get_purchase_options_for_product( int $post_id, float $fallback_price ): array {
-		$durations = array(
-			array(
-				'months' => 1,
-				'price' => $fallback_price,
-				'is_default' => 1,
-			)
-		);
+		$durations = array();
 		$types = array();
 		$type_enabled = (string) get_post_meta( $post_id, '_apptook_type_enabled', true ) === '1';
 		$duration_enabled = (string) get_post_meta( $post_id, '_apptook_duration_enabled', true ) !== '0';
 
-		if ( class_exists( 'Apptook_DS_External_DB' ) && Apptook_DS_External_DB::instance()->is_configured() ) {
-			$data = Apptook_DS_External_DB::instance()->get_product_purchase_options( $post_id );
-			if ( $duration_enabled && ! empty( $data['durations'] ) && is_array( $data['durations'] ) ) {
-				$durations = array_values( $data['durations'] );
-			}
-			if ( ! empty( $data['types'] ) && is_array( $data['types'] ) ) {
-				$types = array_values( $data['types'] );
+		if ( $duration_enabled ) {
+			$raw_durations = get_post_meta( $post_id, '_apptook_duration_rows', true );
+			if ( is_string( $raw_durations ) && trim( $raw_durations ) !== '' ) {
+				$lines = preg_split( "/\r\n|\n|\r/", $raw_durations );
+				if ( is_array( $lines ) ) {
+					foreach ( $lines as $line ) {
+						$line = trim( (string) $line );
+						if ( $line === '' ) {
+							continue;
+						}
+						$parts = array_map( 'trim', explode( '|', $line ) );
+						$months = isset( $parts[0] ) ? max( 1, (int) $parts[0] ) : 1;
+						$price = isset( $parts[1] ) && $parts[1] !== '' ? (float) $parts[1] : $fallback_price;
+						$is_default = isset( $parts[2] ) && (int) $parts[2] === 1 ? 1 : 0;
+						$durations[] = array(
+							'months' => $months,
+							'price' => $price,
+							'is_default' => $is_default,
+						);
+					}
+				}
 			}
 		}
 
-		if ( $type_enabled && $types === array() ) {
+		if ( $type_enabled ) {
 			$raw_types = get_post_meta( $post_id, '_apptook_type_rows', true );
 			if ( is_string( $raw_types ) && trim( $raw_types ) !== '' ) {
 				$lines = preg_split( "/\r\n|\n|\r/", $raw_types );
@@ -1925,22 +1947,43 @@ final class Apptook_DS_Public {
 					}
 				}
 			}
+		}
 
-			if ( $types === array() ) {
-				$types = array(
-					array(
-						'type_key'       => 'shared',
-						'type_label'     => '1 profile Shared',
-						'price_modifier' => 0,
-						'is_default'     => 1,
-					),
-					array(
-						'type_key'       => 'private',
-						'type_label'     => 'Private Account (Full ownership)',
-						'price_modifier' => 0,
-						'is_default'     => 0,
-					),
-				);
+		if ( ( $duration_enabled && $durations === array() ) || ( $type_enabled && $types === array() ) ) {
+			if ( class_exists( 'Apptook_DS_External_DB' ) && Apptook_DS_External_DB::instance()->is_configured() ) {
+				$data = Apptook_DS_External_DB::instance()->get_product_purchase_options( $post_id );
+				if ( $duration_enabled && $durations === array() && ! empty( $data['durations'] ) && is_array( $data['durations'] ) ) {
+					$durations = array_values( $data['durations'] );
+				}
+				if ( $type_enabled && $types === array() && ! empty( $data['types'] ) && is_array( $data['types'] ) ) {
+					$types = array_values( $data['types'] );
+				}
+			}
+		}
+
+		if ( $duration_enabled && $durations !== array() ) {
+			$has_default = false;
+			foreach ( $durations as $row ) {
+				if ( ! empty( $row['is_default'] ) ) {
+					$has_default = true;
+					break;
+				}
+			}
+			if ( ! $has_default && isset( $durations[0] ) ) {
+				$durations[0]['is_default'] = 1;
+			}
+		}
+
+		if ( $type_enabled && $types !== array() ) {
+			$has_default = false;
+			foreach ( $types as $row ) {
+				if ( ! empty( $row['is_default'] ) ) {
+					$has_default = true;
+					break;
+				}
+			}
+			if ( ! $has_default && isset( $types[0] ) ) {
+				$types[0]['is_default'] = 1;
 			}
 		}
 

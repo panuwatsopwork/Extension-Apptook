@@ -289,16 +289,16 @@ final class Apptook_DS_Admin {
 					<div class="apptook-ds-admin-section">
 						<h3><?php esc_html_e('ข้อมูลหลักสินค้า', 'apptook-digital-store'); ?></h3>
 						<div class="apptook-ds-admin-grid">
-							<div class="apptook-ds-admin-field"><label for="apptook_editor_title"><strong><?php esc_html_e('ชื่อสินค้า', 'apptook-digital-store'); ?></strong></label><input id="apptook_editor_title" name="post_title" type="text" class="regular-text" value="<?php echo esc_attr($title); ?>" required /></div>
-							<div class="apptook-ds-admin-field"><label for="apptook_editor_slug"><strong><?php esc_html_e('Slug', 'apptook-digital-store'); ?></strong></label><input id="apptook_editor_slug" name="post_name" type="text" class="regular-text" value="<?php echo esc_attr($slug); ?>" /></div>
-							<div class="apptook-ds-admin-field"><label for="apptook_editor_price"><strong><?php esc_html_e('ราคาปกติ', 'apptook-digital-store'); ?></strong></label><input id="apptook_editor_price" name="apptook_price" type="number" min="0" step="0.01" class="regular-text" value="<?php echo esc_attr($price); ?>" /></div>
+							<div class="apptook-ds-admin-field"><label for="apptook_editor_title"><strong><?php esc_html_e('ชื่อสินค้า', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><input id="apptook_editor_title" name="post_title" type="text" class="regular-text" value="<?php echo esc_attr($title); ?>" required /></div>
+							<div class="apptook-ds-admin-field"><label for="apptook_editor_slug"><strong><?php esc_html_e('Slug', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><input id="apptook_editor_slug" name="post_name" type="text" class="regular-text" value="<?php echo esc_attr($slug); ?>" required /></div>
+							<div class="apptook-ds-admin-field"><label for="apptook_editor_price"><strong><?php esc_html_e('ราคาปกติ', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><input id="apptook_editor_price" name="apptook_price" type="number" min="0.01" step="0.01" class="regular-text" value="<?php echo esc_attr($price); ?>" required /></div>
 							<div class="apptook-ds-admin-field"><label for="apptook_editor_sale_price"><strong><?php esc_html_e('ราคาโปร', 'apptook-digital-store'); ?></strong></label><input id="apptook_editor_sale_price" name="apptook_sale_price" type="number" min="0" step="0.01" class="regular-text" value="<?php echo esc_attr($sale_price); ?>" /></div>
 							<div class="apptook-ds-admin-field"><label for="apptook_editor_status"><strong><?php esc_html_e('สถานะสินค้า', 'apptook-digital-store'); ?></strong></label><select id="apptook_editor_status" name="apptook_product_status"><option value="active" <?php selected($product_status, 'active'); ?>><?php esc_html_e('Active', 'apptook-digital-store'); ?></option><option value="inactive" <?php selected($product_status, 'inactive'); ?>><?php esc_html_e('Inactive', 'apptook-digital-store'); ?></option></select></div>
-							<div class="apptook-ds-admin-field"><label for="apptook_editor_period"><strong><?php esc_html_e('หน่วยราคา', 'apptook-digital-store'); ?></strong></label><input id="apptook_editor_period" name="apptook_period" type="text" class="regular-text" value="<?php echo esc_attr($period); ?>" /></div>
+							<div class="apptook-ds-admin-field"><label for="apptook_editor_period"><strong><?php esc_html_e('หน่วยราคา', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><input id="apptook_editor_period" name="apptook_period" type="text" class="regular-text" value="<?php echo esc_attr($period); ?>" required /></div>
 						</div>
-						<div class="apptook-ds-admin-field"><label for="apptook_editor_excerpt"><strong><?php esc_html_e('คำอธิบายสั้น', 'apptook-digital-store'); ?></strong></label><textarea id="apptook_editor_excerpt" name="post_excerpt" rows="3" class="large-text"><?php echo esc_textarea($excerpt); ?></textarea></div>
-						<div class="apptook-ds-admin-field"><label for="apptook_editor_content"><strong><?php esc_html_e('รายละเอียด', 'apptook-digital-store'); ?></strong></label><textarea id="apptook_editor_content" name="post_content" rows="7" class="large-text"><?php echo esc_textarea($content); ?></textarea></div>
-						<div class="apptook-ds-admin-field"><label for="apptook_editor_bullets"><strong><?php esc_html_e('จุดเด่นสินค้า (1 บรรทัด = 1 ข้อ)', 'apptook-digital-store'); ?></strong></label><textarea id="apptook_editor_bullets" name="apptook_bullets" rows="4" class="large-text"><?php echo esc_textarea($bullets); ?></textarea></div>
+						<div class="apptook-ds-admin-field"><label for="apptook_editor_excerpt"><strong><?php esc_html_e('คำอธิบายสั้น', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><textarea id="apptook_editor_excerpt" name="post_excerpt" rows="3" class="large-text" required><?php echo esc_textarea($excerpt); ?></textarea></div>
+						<div class="apptook-ds-admin-field"><label for="apptook_editor_content"><strong><?php esc_html_e('รายละเอียด', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><textarea id="apptook_editor_content" name="post_content" rows="7" class="large-text" required><?php echo esc_textarea($content); ?></textarea></div>
+						<div class="apptook-ds-admin-field"><label for="apptook_editor_bullets"><strong><?php esc_html_e('จุดเด่นสินค้า (1 บรรทัด = 1 ข้อ)', 'apptook-digital-store'); ?> <span class="apptook-ds-required">*</span></strong></label><textarea id="apptook_editor_bullets" name="apptook_bullets" rows="4" class="large-text" required><?php echo esc_textarea($bullets); ?></textarea></div>
 					</div>
 
 					<div class="apptook-ds-admin-section">
@@ -363,12 +363,59 @@ final class Apptook_DS_Admin {
 		}
 
 		$product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+		$post_title = sanitize_text_field(wp_unslash($_POST['post_title'] ?? ''));
+		$post_slug_raw = sanitize_text_field(wp_unslash($_POST['post_name'] ?? ''));
+		$post_slug = sanitize_title($post_slug_raw);
+		$post_excerpt = sanitize_textarea_field(wp_unslash($_POST['post_excerpt'] ?? ''));
+		$post_content = wp_kses_post(wp_unslash($_POST['post_content'] ?? ''));
+		$price_raw = sanitize_text_field(wp_unslash($_POST['apptook_price'] ?? ''));
+		$period_raw = sanitize_text_field(wp_unslash($_POST['apptook_period'] ?? ''));
+		$bullets_raw = sanitize_textarea_field(wp_unslash($_POST['apptook_bullets'] ?? ''));
+
+		$validation_errors = array();
+		if ($post_title === '') {
+			$validation_errors[] = __('กรุณากรอกชื่อสินค้า', 'apptook-digital-store');
+		}
+		if ($post_slug === '') {
+			$validation_errors[] = __('กรุณากรอก Slug', 'apptook-digital-store');
+		}
+		if ($price_raw === '' || (float) $price_raw <= 0) {
+			$validation_errors[] = __('กรุณากรอกราคาปกติให้มากกว่า 0', 'apptook-digital-store');
+		}
+		if ($period_raw === '') {
+			$validation_errors[] = __('กรุณากรอกหน่วยราคา', 'apptook-digital-store');
+		}
+		if ($post_excerpt === '') {
+			$validation_errors[] = __('กรุณากรอกคำอธิบายสั้น', 'apptook-digital-store');
+		}
+		if (trim(wp_strip_all_tags($post_content)) === '') {
+			$validation_errors[] = __('กรุณากรอกรายละเอียด', 'apptook-digital-store');
+		}
+		if ($bullets_raw === '') {
+			$validation_errors[] = __('กรุณากรอกจุดเด่นสินค้าอย่างน้อย 1 ข้อ', 'apptook-digital-store');
+		}
+
+		if ($validation_errors !== array()) {
+			$redirect_args = array(
+				'post_type' => 'apptook_product',
+				'page' => 'apptook-ds-product-editor',
+				'apptook_saved' => '1',
+				'apptook_saved_type' => 'error',
+				'apptook_msg' => rawurlencode(base64_encode(wp_json_encode($validation_errors))),
+			);
+			if ($product_id > 0) {
+				$redirect_args['product_id'] = $product_id;
+			}
+			wp_safe_redirect(add_query_arg($redirect_args, admin_url('edit.php')));
+			exit;
+		}
+
 		$postarr = array(
 			'post_type' => 'apptook_product',
-			'post_title' => sanitize_text_field(wp_unslash($_POST['post_title'] ?? '')),
-			'post_name' => sanitize_title(wp_unslash($_POST['post_name'] ?? '')),
-			'post_excerpt' => sanitize_textarea_field(wp_unslash($_POST['post_excerpt'] ?? '')),
-			'post_content' => wp_kses_post(wp_unslash($_POST['post_content'] ?? '')),
+			'post_title' => $post_title,
+			'post_name' => $post_slug,
+			'post_excerpt' => $post_excerpt,
+			'post_content' => $post_content,
 			'post_status' => 'publish',
 		);
 		if ($product_id > 0) {
@@ -384,13 +431,13 @@ final class Apptook_DS_Admin {
 		}
 
 		$product_id = (int) $result;
-		update_post_meta($product_id, '_apptook_price', sanitize_text_field(wp_unslash($_POST['apptook_price'] ?? '0')));
+		update_post_meta($product_id, '_apptook_price', $price_raw);
 		update_post_meta($product_id, '_apptook_sale_price', sanitize_text_field(wp_unslash($_POST['apptook_sale_price'] ?? '')));
 		update_post_meta($product_id, '_apptook_product_status', (isset($_POST['apptook_product_status']) && $_POST['apptook_product_status'] === 'inactive') ? 'inactive' : 'active');
-		update_post_meta($product_id, '_apptook_period', sanitize_text_field(wp_unslash($_POST['apptook_period'] ?? '')));
+		update_post_meta($product_id, '_apptook_period', $period_raw);
 		update_post_meta($product_id, '_apptook_badge', sanitize_text_field(wp_unslash($_POST['apptook_badge'] ?? '')));
 		update_post_meta($product_id, '_apptook_badge_style', (isset($_POST['apptook_badge_style']) && $_POST['apptook_badge_style'] === 'green') ? 'green' : '');
-		update_post_meta($product_id, '_apptook_bullets', sanitize_textarea_field(wp_unslash($_POST['apptook_bullets'] ?? '')));
+		update_post_meta($product_id, '_apptook_bullets', $bullets_raw);
 		update_post_meta($product_id, '_apptook_duration_rows', sanitize_textarea_field(wp_unslash($_POST['apptook_duration_rows'] ?? '')));
 		update_post_meta($product_id, '_apptook_type_rows', sanitize_textarea_field(wp_unslash($_POST['apptook_type_rows'] ?? '')));
 		update_post_meta($product_id, '_apptook_duration_enabled', isset($_POST['apptook_duration_enabled']) ? '1' : '0');
@@ -539,6 +586,7 @@ final class Apptook_DS_Admin {
 			'apptook_ds_auth',
 			array('key' => 'google_client_secret')
 		);
+
 	}
 
 	/**
@@ -555,6 +603,7 @@ final class Apptook_DS_Admin {
 		$out['mkt_search_placeholder'] = isset($input['mkt_search_placeholder']) ? sanitize_text_field((string) $input['mkt_search_placeholder']) : '';
 		$out['google_client_id'] = isset($input['google_client_id']) ? sanitize_text_field((string) $input['google_client_id']) : '';
 		$out['google_client_secret'] = isset($input['google_client_secret']) ? sanitize_text_field((string) $input['google_client_secret']) : '';
+
 		return $out;
 	}
 
@@ -579,6 +628,7 @@ final class Apptook_DS_Admin {
 			esc_textarea($val)
 		);
 	}
+
 
 	public function render_settings_page(): void {
 		if (! current_user_can('manage_options')) {

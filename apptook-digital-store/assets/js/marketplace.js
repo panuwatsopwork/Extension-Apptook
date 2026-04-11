@@ -236,14 +236,32 @@
 			return;
 		}
 
+		var closeTimer = null;
+
+		function clearCloseTimer() {
+			if (closeTimer) {
+				window.clearTimeout(closeTimer);
+				closeTimer = null;
+			}
+		}
+
 		function openDropdown() {
+			clearCloseTimer();
 			dropdown.classList.add('is-open');
 			trigger.setAttribute('aria-expanded', 'true');
 		}
 
 		function closeDropdown() {
+			clearCloseTimer();
 			dropdown.classList.remove('is-open');
 			trigger.setAttribute('aria-expanded', 'false');
+		}
+
+		function scheduleCloseDropdown() {
+			clearCloseTimer();
+			closeTimer = window.setTimeout(function () {
+				closeDropdown();
+			}, 220);
 		}
 
 		trigger.addEventListener('click', function (e) {
@@ -257,9 +275,16 @@
 		});
 
 		wrap.addEventListener('mouseleave', function () {
-			closeDropdown();
+			scheduleCloseDropdown();
 		});
 
+		dropdown.addEventListener('mouseenter', function () {
+			openDropdown();
+		});
+
+		dropdown.addEventListener('mouseleave', function () {
+			scheduleCloseDropdown();
+		});
 		trigger.addEventListener('focus', function () {
 			openDropdown();
 		});

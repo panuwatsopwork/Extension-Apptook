@@ -598,7 +598,7 @@
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">เลือกระยะเวลา</p><div class="apptook-st-chip-row" data-apptook-month-grid>' + durationHtml + '</div></div>' +
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ประเภทบัญชี</p><div class="apptook-st-chip-row" data-apptook-type-grid>' + typeChipsHtml + '</div></div>' +
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ตัวเลือกสินค้า</p><div class="apptook-st-chip-row" data-apptook-product-grid><button type="button" class="modal-choice-btn is-active" data-choice="product">Standard</button><button type="button" class="modal-choice-btn" data-choice="product">Plus</button></div></div>' +
-							'<div class="apptook-st-promo"><button type="button" class="apptook-st-promo-toggle" data-apptook-promo-toggle><span>Have a Promo Code or Coupon?</span><span class="material-symbols-outlined" data-apptook-promo-icon>expand_more</span></button><div class="apptook-st-promo-panel hidden" data-apptook-promo-panel><div class="apptook-st-promo-row"><input class="apptook-st-promo-input" placeholder="Enter promo code" type="text"/><button type="button" class="apptook-st-promo-apply">Apply</button></div></div></div>' +
+							'<div class="apptook-st-promo" data-apptook-promo-wrap><button type="button" class="apptook-st-promo-toggle" data-apptook-promo-toggle><span>มีรหัสโปรโมชั่นหรือคูปองส่วนลดไหม?</span><span class="material-symbols-outlined" data-apptook-promo-icon>expand_more</span></button><div class="apptook-st-promo-panel hidden" data-apptook-promo-panel><div class="apptook-st-promo-row"><input class="apptook-st-promo-input" data-apptook-promo-input placeholder="ใส่รหัสโปรโมชั่น" type="text"/><button type="button" class="apptook-st-promo-apply" data-apptook-promo-apply>นำมาใช้</button></div></div></div>' +
 						'</div>' +
 					'</div>' +
 					'<div class="apptook-st-purchase-actions">' +
@@ -640,11 +640,15 @@
 			var activeDuration = getActiveDuration();
 			var modifier = getActiveTypeModifier();
 			var monthly = activeDuration.base + modifier;
-			var total = monthly * activeDuration.months;
+			var baseTotal = monthly * activeDuration.months;
+			var couponDiscount = parseFloat(overlay.getAttribute('data-apptook-coupon-discount') || '0') || 0;
+			if (couponDiscount < 0) couponDiscount = 0;
+			if (couponDiscount > baseTotal) couponDiscount = baseTotal;
+			var total = baseTotal - couponDiscount;
 			var priceEl = overlay.querySelector('[data-apptook-live-price]');
 			var subEl = overlay.querySelector('[data-apptook-live-price-sub]');
 			if (priceEl) priceEl.textContent = formatTHB(total);
-			if (subEl) subEl.textContent = formatTHB(monthly) + ' / month';
+			if (subEl) subEl.textContent = formatTHB(monthly) + ' ต่อเดือน';
 		}
 
 		overlay.addEventListener('click', function (e) {
@@ -686,11 +690,36 @@
 			if (promoToggle) {
 				var panel = overlay.querySelector('[data-apptook-promo-panel]');
 				var icon = overlay.querySelector('[data-apptook-promo-icon]');
+				var wrap = overlay.querySelector('[data-apptook-promo-wrap]');
 				if (panel) {
-					var open = panel.classList.contains('hidden');
+					var isHidden = panel.classList.contains('hidden');
 					panel.classList.toggle('hidden');
-					if (icon) icon.textContent = open ? 'expand_less' : 'expand_more';
+					if (icon) icon.textContent = isHidden ? 'expand_less' : 'expand_more';
+					if (wrap) {
+						if (isHidden) wrap.classList.add('is-open');
+						else wrap.classList.remove('is-open');
+					}
 				}
+				return;
+			}
+
+			var promoApplyBtn = e.target.closest('[data-apptook-promo-apply]');
+			if (promoApplyBtn) {
+				var promoInput = overlay.querySelector('[data-apptook-promo-input]');
+				var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
+				var configuredCodes = (window.apptookDS && Array.isArray(window.apptookDS.discountCodes)) ? window.apptookDS.discountCodes : [];
+				var isValidCode = code !== '' && configuredCodes.indexOf(code) !== -1;
+				var activeDurationPromo = getActiveDuration();
+				var modifierPromo = getActiveTypeModifier();
+				var monthlyPromo = activeDurationPromo.base + modifierPromo;
+				var baseTotalPromo = monthlyPromo * activeDurationPromo.months;
+				var discount = 0;
+				if (isValidCode) {
+					discount = Math.round(baseTotalPromo * 0.1 * 100) / 100;
+				}
+				if (discount > baseTotalPromo) discount = baseTotalPromo;
+				overlay.setAttribute('data-apptook-coupon-discount', String(discount));
+				updateLivePrice();
 				return;
 			}
 		});
@@ -761,6 +790,98 @@
 		}
 
 		window.requestAnimationFrame(tick);
+	}
+
+	function syncGlobalBuyerTickerTrack() {
+		var inner = document.querySelector('.buyer-ticker-track__inner');
+		if (!inner) return;
+		if (inner.getAttribute('data-buyer-ticker-init') === '1') return;
+		inner.setAttribute('data-buyer-ticker-init', '1');
+
+		var items = Array.prototype.slice.call(inner.children);
+		if (!items.length) return;
+		items.forEach(function (item) {
+			inner.appendChild(item.cloneNode(true));
+		});
+
+		var styles = window.getComputedStyle(inner);
+		var durationRaw = styles.animationDuration || '0s';
+		var durationSec = parseFloat(durationRaw);
+		if (!durationSec || isNaN(durationSec) || durationSec <= 0) return;
+		var elapsed = (Date.now() / 1000) % durationSec;
+		inner.style.animationDelay = '-' + elapsed.toFixed(3) + 's';
+	}
+
+	function initCardWaveBuyerTrack() {
+		var tracks = Array.prototype.slice.call(document.querySelectorAll('[data-card-buyer-track]'));
+		if (!tracks.length) return;
+
+		tracks.forEach(function (track) {
+			if (track.getAttribute('data-card-buyer-init') === '1') return;
+			var items = Array.prototype.slice.call(track.querySelectorAll('.st-card-price-buyer-item'));
+			if (!items.length) return;
+
+			track.setAttribute('data-card-buyer-init', '1');
+			items.forEach(function (item) {
+				item.classList.remove('is-active', 'is-entering');
+			});
+			items[0].classList.add('is-active', 'is-entering');
+
+			if (items.length === 1) return;
+
+			var idx = 0;
+			window.setInterval(function () {
+				var current = items[idx];
+				idx = (idx + 1) % items.length;
+				var next = items[idx];
+				if (!current || !next) return;
+
+				current.classList.remove('is-active', 'is-entering');
+				next.classList.add('is-active');
+				window.requestAnimationFrame(function () {
+					next.classList.add('is-entering');
+				});
+			}, 3000);
+		});
+	}
+
+	function initProductDetailRecentBuyerTicker() {
+		var ticker = document.querySelector('.apptook-ds-pd-recent-buyer-ticker');
+		if (!ticker) return;
+		if (ticker.getAttribute('data-pd-ticker-init') === '1') return;
+
+		var items = Array.prototype.slice.call(ticker.querySelectorAll('.apptook-ds-pd-recent-buyer-inline-item'));
+		if (items.length <= 1) return;
+
+		ticker.setAttribute('data-pd-ticker-init', '1');
+		var intervalMs = 3000;
+		var slideMs = 420;
+		var isAnimating = false;
+
+		function cycle() {
+			if (isAnimating) return;
+			isAnimating = true;
+			ticker.style.transition = 'transform ' + slideMs + 'ms ease';
+			ticker.style.transform = 'translateX(-100%)';
+		}
+
+		ticker.addEventListener('transitionend', function () {
+			var first = ticker.querySelector('.apptook-ds-pd-recent-buyer-inline-item');
+			if (!first) {
+				isAnimating = false;
+				return;
+			}
+			ticker.style.transition = 'none';
+			ticker.appendChild(first);
+			ticker.style.transform = 'translateX(0)';
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					isAnimating = false;
+				});
+			});
+		});
+
+		window.setInterval(cycle, intervalMs);
 	}
 
 	function updateProductDetailLivePrice(activeDurationBtn) {
@@ -874,6 +995,8 @@
 			e.preventDefault();
 			var promoInput = document.querySelector('[data-pd-promo-input]');
 			var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
+			var configuredCodes = (window.apptookDS && Array.isArray(window.apptookDS.discountCodes)) ? window.apptookDS.discountCodes : [];
+			var isValidCode = code !== '' && configuredCodes.indexOf(code) !== -1;
 			var pdBuyBtnPromo = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
 			if (pdBuyBtnPromo) {
 				var activeDuration = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
@@ -893,10 +1016,8 @@
 				if (isNaN(monthsPromo) || monthsPromo < 1) monthsPromo = 1;
 				var baseTotalPromo = monthlyPromo * monthsPromo;
 				var discount = 0;
-				if (code === 'SAVE10') {
+				if (isValidCode) {
 					discount = Math.round(baseTotalPromo * 0.1 * 100) / 100;
-				} else if (code === 'LESS50') {
-					discount = 50;
 				}
 				if (discount > baseTotalPromo) discount = baseTotalPromo;
 				pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', String(discount));
@@ -995,5 +1116,9 @@
 	} else {
 		updateProductDetailLivePrice(null);
 	}
+
+	syncGlobalBuyerTickerTrack();
+	initCardWaveBuyerTrack();
+	initProductDetailRecentBuyerTicker();
 
 })();

@@ -254,6 +254,12 @@ body.post-type-apptook_product.apptook_product_page_apptook-ds-product-editor #w
 	color: #0f172a;
 }
 
+.apptook-ds-custom-editor-layout .apptook-ds-required {
+	color: #dc2626;
+	font-weight: 700;
+	margin-left: 2px;
+}
+
 .apptook-ds-custom-editor-layout .regular-text,
 .apptook-ds-custom-editor-layout .large-text,
 .apptook-ds-custom-editor-layout select,

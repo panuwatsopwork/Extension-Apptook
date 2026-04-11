@@ -24,10 +24,6 @@ while (have_posts()) :
 	$badge      = trim((string) get_post_meta($pid, '_apptook_badge', true));
 	$badge_style = (string) get_post_meta($pid, '_apptook_badge_style', true);
 
-	$price_display = $price_raw !== '' ? $price_raw : '0';
-	if ($price_display !== '' && strpos($price_display, '฿') !== 0 && strpos($price_display, 'THB') === false) {
-		$price_display = '฿' . $price_display;
-	}
 
 	$description = trim((string) get_the_excerpt($pid));
 	if ($description === '') {
@@ -64,21 +60,10 @@ while (have_posts()) :
 	$durations = array();
 	$types = array();
 
-	if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
-		$data = Apptook_DS_External_DB::instance()->get_product_purchase_options((int) $pid);
-		if ($duration_enabled && ! empty($data['durations']) && is_array($data['durations'])) {
-			$durations = array_values($data['durations']);
-		}
-		if (! empty($data['types']) && is_array($data['types'])) {
-			$types = array_values($data['types']);
-		}
-	}
-
-	if ($duration_enabled && count($durations) <= 1) {
+	if ($duration_enabled) {
 		$raw_durations = (string) get_post_meta($pid, '_apptook_duration_rows', true);
 		if ($raw_durations !== '') {
 			$duration_lines = preg_split("/\r\n|\n|\r/", $raw_durations);
-			$parsed_durations = array();
 			if (is_array($duration_lines)) {
 				foreach ($duration_lines as $duration_line) {
 					$duration_line = trim((string) $duration_line);
@@ -89,30 +74,17 @@ while (have_posts()) :
 					$months = isset($parts[0]) ? max(1, (int) $parts[0]) : 1;
 					$row_price = isset($parts[1]) && $parts[1] !== '' ? (float) $parts[1] : $price_f;
 					$is_default = isset($parts[2]) && (int) $parts[2] === 1 ? 1 : 0;
-					$parsed_durations[] = array(
+					$durations[] = array(
 						'months' => $months,
 						'price' => $row_price,
 						'is_default' => $is_default,
 					);
 				}
 			}
-			if ($parsed_durations !== array()) {
-				$has_default_duration = false;
-				foreach ($parsed_durations as $row) {
-					if ((int) ($row['is_default'] ?? 0) === 1) {
-						$has_default_duration = true;
-						break;
-					}
-				}
-				if (! $has_default_duration) {
-					$parsed_durations[0]['is_default'] = 1;
-				}
-				$durations = $parsed_durations;
-			}
 		}
 	}
 
-	if ($type_enabled && $types === array()) {
+	if ($type_enabled) {
 		$raw_types = (string) get_post_meta($pid, '_apptook_type_rows', true);
 		if ($raw_types !== '') {
 			$lines = preg_split("/\r\n|\n|\r/", $raw_types);
@@ -148,6 +120,18 @@ while (have_posts()) :
 		}
 	}
 
+	if (($duration_enabled && $durations === array()) || ($type_enabled && $types === array())) {
+		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
+			$data = Apptook_DS_External_DB::instance()->get_product_purchase_options((int) $pid);
+			if ($duration_enabled && $durations === array() && ! empty($data['durations']) && is_array($data['durations'])) {
+				$durations = array_values($data['durations']);
+			}
+			if ($type_enabled && $types === array() && ! empty($data['types']) && is_array($data['types'])) {
+				$types = array_values($data['types']);
+			}
+		}
+	}
+
 	if ($duration_enabled && $durations !== array()) {
 		$has_duration_default = false;
 		foreach ($durations as $duration_row) {
@@ -173,6 +157,24 @@ while (have_posts()) :
 			$types[0]['is_default'] = 1;
 		}
 	}
+
+	$display_price_f = $price_f;
+	if ($duration_enabled && $durations !== array()) {
+		$default_duration = null;
+		foreach ($durations as $duration_row) {
+			if (! empty($duration_row['is_default'])) {
+				$default_duration = $duration_row;
+				break;
+			}
+		}
+		if (! is_array($default_duration) && isset($durations[0]) && is_array($durations[0])) {
+			$default_duration = $durations[0];
+		}
+		if (is_array($default_duration) && isset($default_duration['price'])) {
+			$display_price_f = (float) $default_duration['price'];
+		}
+	}
+	$price_display = '฿' . number_format($display_price_f, 2);
 
 	$durations_json = wp_json_encode($duration_enabled ? $durations : array());
 	$types_json = wp_json_encode($type_enabled ? $types : array());

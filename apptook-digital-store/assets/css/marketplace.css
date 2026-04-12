@@ -503,7 +503,7 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 }
 
 .apptook-stitch .st-search-pill:focus-within {
-	box-shadow: 0 0 0 2px var(--st-primary), 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+	box-shadow: 0 0 0 2px rgba(65, 225, 227, 0.24), 0 20px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
 .apptook-stitch .st-search-pill .material-symbols-outlined {
@@ -522,7 +522,14 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 	font-weight: 500;
 	color: var(--st-on-surface);
 	outline: none;
+	box-shadow: none;
 	min-width: 0;
+}
+
+.apptook-stitch .st-search-input:focus,
+.apptook-stitch .st-search-input:focus-visible {
+	outline: none;
+	box-shadow: none;
 }
 
 .apptook-stitch .st-search-input::placeholder {
@@ -861,6 +868,8 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 }
 
 .apptook-stitch .st-card-price span {
+	display: block;
+	margin-top: 0.22rem;
 	font-size: 18px;
 	font-weight: 400;
 	line-height: 1;
@@ -3479,7 +3488,6 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 
 .apptook-stitch.apptook-support-page .apptook-support-card {
 	background: #ffffff;
-	border: 1px solid #dbe4e7;
 	border-radius: 1.45rem;
 	padding: 1.4rem 1.5rem;
 	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);

@@ -615,6 +615,21 @@
             text-align: center;
             color: #6f84a0;
         }
+
+        .featured-product {
+            border: 1px solid #bdeae7;
+            box-shadow: 0 10px 24px rgba(15, 77, 87, 0.08);
+        }
+        .featured-product .buy-btn {
+            background: #0f4d57;
+        }
+        .featured-pick-card {
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+        .featured-pick-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+        }
     </style>
 <script id="tailwind-config">
         tailwind.config = {
@@ -841,6 +856,94 @@
 </div>
 </div>
 </section>
+
+<!-- Featured Picks Section -->
+<section class="mb-12" id="featured-section">
+<div class="max-w-screen-xl mx-auto px-6">
+<div class="rounded-[2rem] border border-[#ccefed] bg-gradient-to-br from-[#f3ffff] via-white to-[#edfdfa] p-6 md:p-8 shadow-[0_12px_34px_rgba(15,23,42,0.08)]">
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-6">
+<div>
+<p class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 text-[#0f6f71] text-xs font-bold tracking-wide uppercase"><span class="material-symbols-outlined text-[16px]">local_fire_department</span>Featured Picks</p>
+<h2 class="text-2xl md:text-3xl font-bold text-slate-900 mt-3">สินค้าเด่นที่เราแนะนำเป็นพิเศษ</h2>
+<p class="text-slate-600 mt-1">คัดมาแล้วจากสินค้าขายดีและคุ้มค่าสำหรับเริ่มใช้งานทันที</p>
+</div>
+<a class="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-primary text-white font-semibold hover:opacity-90 transition-opacity w-fit" href="#product-grid-section">
+<span class="material-symbols-outlined text-[18px]">flash_on</span>
+<span>ดูสินค้าทั้งหมด</span>
+</a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="featured-picks-grid">
+<article class="featured-pick-card rounded-[1.6rem] border border-[#bfe9e6] bg-white p-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" data-target-product="ChatGPT Plus">
+<div class="flex items-center justify-between mb-4">
+<span class="inline-flex items-center h-7 px-3 rounded-full bg-[#fff1d8] text-[#9a5a00] text-[11px] font-extrabold tracking-[0.06em]">BEST SELLER</span>
+<span class="text-xs text-slate-500">ยอดนิยมวันนี้</span>
+</div>
+<div class="flex items-center gap-3 mb-4">
+<img alt="ChatGPT Plus" class="w-11 h-11 rounded-xl" src="https://www.google.com/s2/favicons?domain=openai.com&sz=128"/>
+<div>
+<h3 class="text-lg font-bold text-slate-900 leading-tight">ChatGPT Plus</h3>
+<p class="text-xs text-slate-500">เหมาะกับงานเขียน คิด และสรุปข้อมูล</p>
+</div>
+</div>
+<p class="text-[13px] text-slate-600 leading-relaxed mb-4">ตอบไว ใช้งานง่าย ช่วยเพิ่มประสิทธิภาพการทำงานทั้งสายคอนเทนต์และสายออฟฟิศ</p>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-slate-500">เริ่มต้นเพียง</p>
+<p class="text-2xl leading-none font-bold text-[#0f4d57]">฿20<span class="text-sm font-medium text-slate-500">/เดือน</span></p>
+</div>
+<button class="featured-open-btn h-10 px-4 rounded-full bg-[#0f4d57] text-white text-sm font-semibold hover:opacity-90 transition-opacity" type="button">ดูรายละเอียด</button>
+</div>
+</article>
+
+<article class="featured-pick-card rounded-[1.6rem] border border-[#bfe9e6] bg-white p-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" data-target-product="Cursor AI">
+<div class="flex items-center justify-between mb-4">
+<span class="inline-flex items-center h-7 px-3 rounded-full bg-[#ffe5ec] text-[#b42353] text-[11px] font-extrabold tracking-[0.06em]">HOT DEAL</span>
+<span class="text-xs text-slate-500">สาย Developer</span>
+</div>
+<div class="flex items-center gap-3 mb-4">
+<img alt="Cursor AI" class="w-11 h-11 rounded-xl" src="https://www.google.com/s2/favicons?domain=cursor.com&sz=128"/>
+<div>
+<h3 class="text-lg font-bold text-slate-900 leading-tight">Cursor AI</h3>
+<p class="text-xs text-slate-500">AI coding assistant สำหรับโปรเจกต์จริง</p>
+</div>
+</div>
+<p class="text-[13px] text-slate-600 leading-relaxed mb-4">ช่วยเติมโค้ด แก้บั๊ก และทำงานกับ codebase ได้เร็วขึ้นแบบเห็นผล</p>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-slate-500">เริ่มต้นเพียง</p>
+<p class="text-2xl leading-none font-bold text-[#0f4d57]">฿19<span class="text-sm font-medium text-slate-500">/เดือน</span></p>
+</div>
+<button class="featured-open-btn h-10 px-4 rounded-full bg-[#0f4d57] text-white text-sm font-semibold hover:opacity-90 transition-opacity" type="button">ดูรายละเอียด</button>
+</div>
+</article>
+
+<article class="featured-pick-card rounded-[1.6rem] border border-[#bfe9e6] bg-white p-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" data-target-product="Netflix Premium">
+<div class="flex items-center justify-between mb-4">
+<span class="inline-flex items-center h-7 px-3 rounded-full bg-[#e8f0ff] text-[#1f4db8] text-[11px] font-extrabold tracking-[0.06em]">LIMITED</span>
+<span class="text-xs text-slate-500">สายบันเทิง</span>
+</div>
+<div class="flex items-center gap-3 mb-4">
+<img alt="Netflix Premium" class="w-11 h-11 rounded-xl" src="https://www.google.com/s2/favicons?domain=netflix.com&sz=128"/>
+<div>
+<h3 class="text-lg font-bold text-slate-900 leading-tight">Netflix Premium</h3>
+<p class="text-xs text-slate-500">ดูได้หลายอุปกรณ์ ภาพคมชัดระดับสูง</p>
+</div>
+</div>
+<p class="text-[13px] text-slate-600 leading-relaxed mb-4">แพ็กเกจสุดคุ้มสำหรับสายซีรีส์และหนัง ที่ต้องการความคมชัดและความลื่นไหล</p>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-slate-500">เริ่มต้นเพียง</p>
+<p class="text-2xl leading-none font-bold text-[#0f4d57]">฿12<span class="text-sm font-medium text-slate-500">/เดือน</span></p>
+</div>
+<button class="featured-open-btn h-10 px-4 rounded-full bg-[#0f4d57] text-white text-sm font-semibold hover:opacity-90 transition-opacity" type="button">ดูรายละเอียด</button>
+</div>
+</article>
+</div>
+</div>
+</div>
+</section>
+
 <!-- Category Navigation -->
 <section class="mb-12" id="category-section">
 <div class="max-w-screen-xl mx-auto px-6">
@@ -870,6 +973,10 @@
 <span class="material-symbols-outlined">auto_awesome</span>
 <span>New</span>
 </button>
+<button class="category-btn" data-category="featured" type="button">
+<span class="material-symbols-outlined">local_fire_department</span>
+<span>Top Picks</span>
+</button>
 </div>
 </div>
 </div>
@@ -878,7 +985,7 @@
 <section class="max-w-screen-xl mx-auto px-6" id="product-grid-section">
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" id="product-grid">
 <!-- 1. ChatGPT Plus -->
-<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group bg-white rounded-[2rem]" data-category="ai" data-name="ChatGPT Plus">
+<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group bg-white rounded-[2rem] featured-product" data-category="ai featured" data-name="ChatGPT Plus">
 <div class="bg-surface-container-lowest p-8 flex flex-col items-center justify-center relative min-h-[160px]">
 <img alt="ChatGPT Plus logo" class="w-16 h-16 object-contain mb-4" src="https://www.google.com/s2/favicons?domain=openai.com&sz=128"/>
 <h3 class="font-headline font-bold text-lg text-[#1f2328]">ChatGPT Plus</h3>
@@ -900,7 +1007,7 @@
 </div>
 </div>
 <!-- 2. Cursor AI -->
-<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white rounded-[2rem]" data-category="ai software" data-name="Cursor AI">
+<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white rounded-[2rem] featured-product" data-category="ai software featured" data-name="Cursor AI">
 <div class="bg-surface-container-lowest p-8 flex flex-col items-center justify-center relative min-h-[160px]">
 <img alt="Cursor AI logo" class="w-16 h-16 object-contain mb-4" src="https://www.google.com/s2/favicons?domain=cursor.com&sz=128"/>
 <h3 class="font-headline font-bold text-lg text-[#1f2328]">Cursor AI</h3>
@@ -1098,7 +1205,7 @@
 </div>
 </div>
 <!-- 11. Netflix Premium -->
-<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white rounded-[2rem]" data-category="film" data-name="Netflix Premium">
+<div class="product-card flex flex-col overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white rounded-[2rem] featured-product" data-category="film featured" data-name="Netflix Premium">
 <div class="bg-surface-container-lowest p-8 flex flex-col items-center justify-center relative min-h-[160px]">
 <img alt="Netflix logo" class="w-16 h-16 object-contain mb-4" src="https://www.google.com/s2/favicons?domain=netflix.com&sz=128"/>
 <h3 class="font-headline font-bold text-lg text-[#1f2328]">Netflix Premium</h3>
@@ -2032,6 +2139,7 @@ Mobile Flow
             const productGridSection = document.getElementById('product-grid-section');
             const categorySection = document.getElementById('category-section');
             const heroSection = document.getElementById('hero-section');
+            const featuredSection = document.getElementById('featured-section');
             const showMoreContainer = document.getElementById('show-more-container');
             const productDetailPage = document.getElementById('product-detail-page');
             const backToMarketBtn = document.getElementById('back-to-market-btn');
@@ -2197,6 +2305,7 @@ Mobile Flow
                 supportPage?.classList.add('hidden');
                 blogArticlePage?.classList.add('hidden');
                 heroSection?.classList.remove('hidden');
+                featuredSection?.classList.remove('hidden');
                 categorySection?.classList.remove('hidden');
                 productGridSection?.classList.remove('hidden');
                 showMoreContainer?.classList.remove('hidden');
@@ -2205,6 +2314,7 @@ Mobile Flow
 
             const showProductDetailView = () => {
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');
@@ -2218,6 +2328,7 @@ Mobile Flow
 
             const showMySubscriptionView = () => {
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');
@@ -2328,6 +2439,7 @@ Mobile Flow
 
             // Product detail mock page
             const viewDetailLinks = document.querySelectorAll('.product-card [data-action="view-detail"]');
+            const featuredOpenBtns = document.querySelectorAll('.featured-open-btn');
             const productDetailContentMap = {
                 'ChatGPT Plus': {
                     desc: 'บัญชี ChatGPT Plus สำหรับใช้งาน GPT รุ่นใหม่ ตอบไวขึ้น รองรับงานเขียน งานสรุป และงานวิเคราะห์แบบมืออาชีพ',
@@ -2612,6 +2724,23 @@ Mobile Flow
                 });
             });
 
+            featuredOpenBtns.forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const featuredCard = e.target.closest('.featured-pick-card');
+                    const targetName = featuredCard?.getAttribute('data-target-product');
+                    if (!targetName) return;
+
+                    const productCard = Array.from(document.querySelectorAll('.product-card')).find((card) => {
+                        return card.getAttribute('data-name') === targetName;
+                    });
+
+                    if (productCard) {
+                        openDetailPage(productCard);
+                    }
+                });
+            });
+
             backToMarketBtn?.addEventListener('click', () => {
                 showMarketplaceView();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2629,6 +2758,7 @@ Mobile Flow
 
             const showBlogView = () => {
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');
@@ -2647,6 +2777,7 @@ Mobile Flow
 
             const showOrderHistoryView = () => {
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');
@@ -3296,6 +3427,7 @@ Mobile Flow
 
             const showSupportView = () => {
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');
@@ -3454,6 +3586,7 @@ Mobile Flow
 
                 blogPage?.classList.add('hidden');
                 heroSection?.classList.add('hidden');
+                featuredSection?.classList.add('hidden');
                 categorySection?.classList.add('hidden');
                 productGridSection?.classList.add('hidden');
                 showMoreContainer?.classList.add('hidden');

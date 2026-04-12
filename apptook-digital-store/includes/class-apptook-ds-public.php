@@ -2460,9 +2460,8 @@ final class Apptook_DS_Public {
 											<th><?php esc_html_e( 'รหัสออเดอร์', 'apptook-digital-store' ); ?></th>
 											<th><?php esc_html_e( 'สินค้า', 'apptook-digital-store' ); ?></th>
 											<th><?php esc_html_e( 'ราคา', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'สถานะ', 'apptook-digital-store' ); ?></th>
 											<th><?php esc_html_e( 'วันที่ซื้อ', 'apptook-digital-store' ); ?></th>
-											<th><?php esc_html_e( 'วันหมดอายุ', 'apptook-digital-store' ); ?></th>
+											<th><?php esc_html_e( 'สถานะ', 'apptook-digital-store' ); ?></th>
 										</tr>
 									</thead>
 									<tbody id="apptook-order-history-tbody">
@@ -2471,9 +2470,8 @@ final class Apptook_DS_Public {
 												<td>#<?php echo esc_html( (string) $row['order_id'] ); ?></td>
 												<td><?php echo esc_html( (string) $row['product_name'] ); ?></td>
 												<td><?php echo esc_html( (string) $row['amount_text'] ); ?></td>
-												<td><span class="apptook-order-history__badge is-<?php echo esc_attr( (string) $row['ui_state'] ); ?>"><?php echo esc_html( (string) $row['status_label'] ); ?></span></td>
 												<td><?php echo esc_html( (string) $row['created_at'] ); ?></td>
-												<td><?php echo esc_html( (string) $row['expires_at'] ); ?></td>
+												<td><span class="apptook-order-history__badge is-<?php echo esc_attr( (string) $row['ui_state'] ); ?>"><?php echo esc_html( (string) $row['status_label'] ); ?></span></td>
 											</tr>
 										<?php endforeach; ?>
 									</tbody>

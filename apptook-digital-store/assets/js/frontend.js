@@ -881,6 +881,45 @@
 		window.setInterval(cycle, intervalMs);
 	}
 
+	function initOrderHistoryDateInputs() {
+		var inputs = Array.prototype.slice.call(document.querySelectorAll('.apptook-order-history__date-input'));
+		if (!inputs.length) return;
+
+		var today = new Date();
+		var yyyy = String(today.getFullYear());
+		var mm = String(today.getMonth() + 1).padStart(2, '0');
+		var dd = String(today.getDate()).padStart(2, '0');
+		var todayIso = yyyy + '-' + mm + '-' + dd;
+
+		function openNativePicker(input) {
+			if (!input || typeof input.showPicker !== 'function') return;
+			try {
+				input.showPicker();
+			} catch (e) {
+				// ignore browser restrictions
+			}
+		}
+
+		inputs.forEach(function (input) {
+			input.setAttribute('max', '9999-12-31');
+			input.value = todayIso;
+
+			input.addEventListener('focus', function () {
+				openNativePicker(input);
+			});
+
+			input.addEventListener('click', function () {
+				openNativePicker(input);
+			});
+
+			input.addEventListener('blur', function () {
+				if (!String(input.value || '').trim()) {
+					input.value = todayIso;
+				}
+			});
+		});
+	}
+
 	function updateProductDetailLivePrice(activeDurationBtn) {
 		var pdBuyBtn = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
 		if (!pdBuyBtn) return;
@@ -1119,5 +1158,6 @@
 	syncGlobalBuyerTickerTrack();
 	initCardWaveBuyerTrack();
 	initProductDetailRecentBuyerTicker();
+	initOrderHistoryDateInputs();
 
 })();

@@ -14,7 +14,8 @@
 	--st-surface-container-lowest: #ffffff;
 	--st-surface-container: #e9efef;
 	--st-surface-container-high: #e3e9e9;
-	--st-primary: rgb(65, 225, 227);
+	--st-primary: #81D8D0;
+	--st-primary-rgb: 129, 216, 208;
 	--st-outline: #6c7a7a;
 	--st-outline-variant: #bbc9c9;
 	--st-font-text: "Kanit", sans-serif;
@@ -503,7 +504,7 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 }
 
 .apptook-stitch .st-search-pill:focus-within {
-	box-shadow: 0 0 0 2px rgba(65, 225, 227, 0.24), 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+	box-shadow: 0 0 0 2px rgba(129, 216, 208, 0.24), 0 20px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
 .apptook-stitch .st-search-pill .material-symbols-outlined {
@@ -2150,7 +2151,7 @@ body.admin-bar .apptook-stitch .buyer-ticker-track {
 }
 
 .apptook-order-calendar__day.is-today {
-	background: #41e1e3;
+	background: #81d8d0;
 	color: #ffffff;
 	box-shadow: 0 0 0 2px rgba(65, 225, 227, 0.22);
 }

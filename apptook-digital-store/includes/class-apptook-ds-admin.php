@@ -597,6 +597,87 @@ final class Apptook_DS_Admin {
 		);
 
 		add_settings_section(
+			'apptook_ds_theme',
+			__('ธีมสี Marketplace', 'apptook-digital-store'),
+			static function (): void {
+				echo '<p>' . esc_html__('ปรับสีส่วนหลักของหน้าร้านได้หลายจุด เช่น Primary, Surface และข้อความ', 'apptook-digital-store') . '</p>';
+			},
+			'apptook-ds-settings'
+		);
+
+		add_settings_field(
+			'mkt_theme_primary',
+			__('สีหลักธีม (Primary)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_primary',
+				'default' => '#81D8D0',
+			)
+		);
+
+		add_settings_field(
+			'mkt_theme_surface',
+			__('สีพื้นหลังหลัก (Surface)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_surface',
+				'default' => '#F4FBFA',
+			)
+		);
+
+		add_settings_field(
+			'mkt_theme_surface_container',
+			__('สีพื้นหลังการ์ดรอง (Surface Container)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_surface_container',
+				'default' => '#E9EFEF',
+			)
+		);
+
+		add_settings_field(
+			'mkt_theme_text',
+			__('สีข้อความหลัก (On Surface)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_text',
+				'default' => '#161D1D',
+			)
+		);
+
+		add_settings_field(
+			'mkt_theme_text_muted',
+			__('สีข้อความรอง (On Surface Variant)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_text_muted',
+				'default' => '#3C4949',
+			)
+		);
+
+		add_settings_field(
+			'mkt_theme_outline',
+			__('สีเส้นขอบ/ไอคอนรอง (Outline)', 'apptook-digital-store'),
+			array($this, 'field_color'),
+			'apptook-ds-settings',
+			'apptook_ds_theme',
+			array(
+				'key' => 'mkt_theme_outline',
+				'default' => '#6C7A7A',
+			)
+		);
+
+		add_settings_section(
 			'apptook_ds_discount_codes',
 			__('โค้ดส่วนลด', 'apptook-digital-store'),
 			static function (): void {
@@ -628,30 +709,65 @@ final class Apptook_DS_Admin {
 		$out['mkt_title']             = isset($input['mkt_title']) ? sanitize_text_field((string) $input['mkt_title']) : '';
 		$out['mkt_subtitle']          = isset($input['mkt_subtitle']) ? sanitize_textarea_field((string) $input['mkt_subtitle']) : '';
 		$out['mkt_search_placeholder'] = isset($input['mkt_search_placeholder']) ? sanitize_text_field((string) $input['mkt_search_placeholder']) : '';
+		$theme_color_defaults = array(
+			'mkt_theme_primary' => '#81D8D0',
+			'mkt_theme_surface' => '#F4FBFA',
+			'mkt_theme_surface_container' => '#E9EFEF',
+			'mkt_theme_text' => '#161D1D',
+			'mkt_theme_text_muted' => '#3C4949',
+			'mkt_theme_outline' => '#6C7A7A',
+		);
+		foreach ($theme_color_defaults as $theme_key => $theme_default) {
+			$theme_color = isset($input[$theme_key]) ? sanitize_hex_color((string) $input[$theme_key]) : '';
+			$out[$theme_key] = $theme_color ? strtoupper($theme_color) : $theme_default;
+		}
 		$out['google_client_id'] = isset($input['google_client_id']) ? sanitize_text_field((string) $input['google_client_id']) : '';
 		$out['google_client_secret'] = isset($input['google_client_secret']) ? sanitize_text_field((string) $input['google_client_secret']) : '';
 
 		$rows = array();
-		$codes_in = isset($input['discount_code']) && is_array($input['discount_code']) ? array_values((array) $input['discount_code']) : array();
-		$amounts_in = isset($input['discount_amount']) && is_array($input['discount_amount']) ? array_values((array) $input['discount_amount']) : array();
-		$max = min(10, max(count($codes_in), count($amounts_in)));
-		$seen_codes = array();
-		for ($i = 0; $i < $max; $i++) {
-			$code = isset($codes_in[$i]) ? strtoupper(sanitize_text_field((string) $codes_in[$i])) : '';
-			$amount = isset($amounts_in[$i]) ? (float) sanitize_text_field((string) $amounts_in[$i]) : 0;
-			if ($code === '' || $amount <= 0) {
-				continue;
+		$has_discount_form_input = isset($input['discount_code']) || isset($input['discount_amount']) || isset($input['discount_qty']);
+		if ($has_discount_form_input) {
+			$codes_in = isset($input['discount_code']) && is_array($input['discount_code']) ? array_values((array) $input['discount_code']) : array();
+			$amounts_in = isset($input['discount_amount']) && is_array($input['discount_amount']) ? array_values((array) $input['discount_amount']) : array();
+			$qty_in = isset($input['discount_qty']) && is_array($input['discount_qty']) ? array_values((array) $input['discount_qty']) : array();
+			$max = min(10, max(count($codes_in), count($amounts_in), count($qty_in)));
+			$seen_codes = array();
+			for ($i = 0; $i < $max; $i++) {
+				$code = isset($codes_in[$i]) ? strtoupper(sanitize_text_field((string) $codes_in[$i])) : '';
+				$amount = isset($amounts_in[$i]) ? (float) sanitize_text_field((string) $amounts_in[$i]) : 0;
+				$qty = isset($qty_in[$i]) ? max(0, (int) sanitize_text_field((string) $qty_in[$i])) : 0;
+				if ($code === '' || $amount <= 0) {
+					continue;
+				}
+				if (isset($seen_codes[$code])) {
+					continue;
+				}
+				$seen_codes[$code] = true;
+				$rows[] = array(
+					'code' => $code,
+					'amount' => $amount,
+					'qty' => $qty,
+				);
 			}
-			if (isset($seen_codes[$code])) {
-				continue;
+		} elseif (isset($input['discount_code_rows']) && is_array($input['discount_code_rows'])) {
+			foreach ((array) $input['discount_code_rows'] as $row) {
+				if (! is_array($row)) {
+					continue;
+				}
+				$code = isset($row['code']) ? strtoupper(sanitize_text_field((string) $row['code'])) : '';
+				$amount = isset($row['amount']) ? (float) sanitize_text_field((string) $row['amount']) : 0;
+				$qty = isset($row['qty']) ? max(0, (int) sanitize_text_field((string) $row['qty'])) : 0;
+				if ($code === '' || $amount <= 0) {
+					continue;
+				}
+				$rows[] = array(
+					'code' => $code,
+					'amount' => $amount,
+					'qty' => $qty,
+				);
 			}
-			$seen_codes[$code] = true;
-			$rows[] = array(
-				'code' => $code,
-				'amount' => $amount,
-			);
 		}
-		$out['discount_code_rows'] = $rows;
+		$out['discount_code_rows'] = array_slice($rows, 0, 10);
 
 		return $out;
 	}
@@ -678,6 +794,45 @@ final class Apptook_DS_Admin {
 		);
 	}
 
+	public function field_color(array $args): void {
+		$opts = get_option('apptook_ds_options', array());
+		$key = (string) $args['key'];
+		$default = isset($args['default']) ? (string) $args['default'] : '#81D8D0';
+		$val = isset($opts[$key]) ? (string) $opts[$key] : $default;
+		$val = sanitize_hex_color($val);
+		if (! $val) {
+			$val = $default;
+		}
+		$color_id = 'apptook_ds_' . $key;
+		$hex_id = $color_id . '_hex';
+		$display_hex = strtoupper($val);
+		$help_map = array(
+			'mkt_theme_primary' => __('สีหลักของปุ่มหลัก ไฮไลต์ และเอฟเฟกต์โฟกัส', 'apptook-digital-store'),
+			'mkt_theme_surface' => __('สีพื้นหลังหลักของหน้า Marketplace', 'apptook-digital-store'),
+			'mkt_theme_surface_container' => __('สีพื้นหลังของกล่องหรือการ์ดรอง', 'apptook-digital-store'),
+			'mkt_theme_text' => __('สีข้อความหลัก เช่น หัวข้อและเนื้อหาหลัก', 'apptook-digital-store'),
+			'mkt_theme_text_muted' => __('สีข้อความรอง เช่น คำอธิบายหรือข้อความเสริม', 'apptook-digital-store'),
+			'mkt_theme_outline' => __('สีเส้นขอบและไอคอนรอง เช่น กรอบ input หรือเส้นคั่น', 'apptook-digital-store'),
+		);
+		$help_text = isset($help_map[$key]) ? (string) $help_map[$key] : __('พิมพ์ HEX ได้โดยตรง เช่น #81D8D0 หรือเลือกจาก color picker', 'apptook-digital-store');
+		printf(
+			'<div class="apptook-ds-color-field" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+			. '<input type="color" name="apptook_ds_options[%1$s]" id="%2$s" value="%3$s" />'
+			. '<input type="text" id="%4$s" value="%3$s" inputmode="text" pattern="^#([A-Fa-f0-9]{6})$" maxlength="7" placeholder="#81D8D0" style="width:110px;font-family:monospace;" />'
+			. '<code>%3$s</code>'
+			. '<span class="dashicons dashicons-editor-help" title="%5$s" aria-label="%5$s" style="cursor:help;color:#64748b;"></span>'
+			. '</div>'
+			. '<p class="description">%6$s</p>'
+			. '<script>(function(){var c=document.getElementById("%2$s");var h=document.getElementById("%4$s");if(!c||!h){return;}function norm(v){v=String(v||"").trim();if(v===""){return "";}if(v.charAt(0)!=="#"){v="#"+v;}if(/^#([A-Fa-f0-9]{6})$/.test(v)){return v.toUpperCase();}return "";}c.addEventListener("input",function(){h.value=String(c.value||"").toUpperCase();});h.addEventListener("input",function(){var n=norm(h.value);if(n){c.value=n;h.value=n;}});h.addEventListener("blur",function(){var n=norm(h.value);h.value=n||String(c.value||"").toUpperCase();});})();</script>',
+			esc_attr($key),
+			esc_attr($color_id),
+			esc_attr($display_hex),
+			esc_attr($hex_id),
+			esc_attr($help_text),
+			esc_html($help_text)
+		);
+	}
+
 	public function field_discount_codes(): void {
 		$opts = get_option('apptook_ds_options', array());
 		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? array_values($opts['discount_code_rows']) : array();
@@ -688,16 +843,20 @@ final class Apptook_DS_Admin {
 		for ($i = 0; $i < $render_rows; $i++) {
 			$code = isset($rows[$i]['code']) ? (string) $rows[$i]['code'] : '';
 			$amount = isset($rows[$i]['amount']) ? (string) $rows[$i]['amount'] : '';
-			echo '<div class="apptook-ds-discount-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">';
+			$qty = isset($rows[$i]['qty']) ? (string) (int) $rows[$i]['qty'] : '0';
+			echo '<div class="apptook-ds-discount-row" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">';
 			echo '<input type="text" class="regular-text" name="apptook_ds_options[discount_code][]" value="' . esc_attr($code) . '" placeholder="โค้ด เช่น SAVE100" style="max-width:280px;" />';
 			echo '<input type="number" min="0" step="0.01" class="small-text" name="apptook_ds_options[discount_amount][]" value="' . esc_attr($amount) . '" placeholder="ส่วนลด (บาท)" />';
+			echo '<input type="number" min="0" step="1" class="small-text apptook-ds-discount-qty" name="apptook_ds_options[discount_qty][]" value="' . esc_attr($qty) . '" placeholder="จำนวนโค้ด" readonly />';
+			echo '<button type="button" class="button apptook-ds-edit-discount-qty">แก้ไขจำนวน</button>';
+			echo '<button type="button" class="button button-primary apptook-ds-save-discount-qty" style="display:none;">ตกลง</button>';
 			echo '<button type="button" class="button apptook-ds-remove-discount-row">ลบ</button>';
 			echo '</div>';
 		}
 		echo '</div>';
 		echo '<button type="button" class="button" id="apptook-ds-add-discount-row">+ เพิ่มโค้ดส่วนลด</button>';
-		echo '<p class="description">สูงสุด 10 โค้ด (ตั้งราคาเป็นจำนวนเงินที่ลด หน่วยบาท)</p>';
-		echo '<script>(function(){var wrap=document.getElementById("apptook-ds-discount-codes-wrap");var add=document.getElementById("apptook-ds-add-discount-row");if(!wrap||!add){return;}function bindRemove(btn){btn.addEventListener("click",function(){var rows=wrap.querySelectorAll(".apptook-ds-discount-row");if(rows.length<=1){var c=wrap.querySelector("input[name=\"apptook_ds_options[discount_code][]\"]");var a=wrap.querySelector("input[name=\"apptook_ds_options[discount_amount][]\"]");if(c){c.value="";}if(a){a.value="";}return;}var row=btn.closest(".apptook-ds-discount-row");if(row){row.remove();}});}wrap.querySelectorAll(".apptook-ds-remove-discount-row").forEach(bindRemove);add.addEventListener("click",function(){var count=wrap.querySelectorAll(".apptook-ds-discount-row").length;if(count>=10){return;}var row=document.createElement("div");row.className="apptook-ds-discount-row";row.style.cssText="display:flex;gap:8px;align-items:center;margin-bottom:8px;";var inputCode=document.createElement("input");inputCode.type="text";inputCode.className="regular-text";inputCode.name="apptook_ds_options[discount_code][]";inputCode.placeholder="โค้ด เช่น SAVE100";inputCode.style.maxWidth="280px";var inputAmount=document.createElement("input");inputAmount.type="number";inputAmount.min="0";inputAmount.step="0.01";inputAmount.className="small-text";inputAmount.name="apptook_ds_options[discount_amount][]";inputAmount.placeholder="ส่วนลด (บาท)";var remove=document.createElement("button");remove.type="button";remove.className="button apptook-ds-remove-discount-row";remove.textContent="ลบ";row.appendChild(inputCode);row.appendChild(inputAmount);row.appendChild(remove);wrap.appendChild(row);bindRemove(remove);});})();</script>';
+		echo '<p class="description">สูงสุด 10 โค้ด (ส่วนลดเป็นบาท และจำนวนโค้ดคือจำนวนครั้งที่ใช้งานได้)</p>';
+		echo '<script>(function(){var wrap=document.getElementById("apptook-ds-discount-codes-wrap");var add=document.getElementById("apptook-ds-add-discount-row");if(!wrap||!add){return;}function clearFirstRow(){var c=wrap.querySelector("input[name=\"apptook_ds_options[discount_code][]\"]");var a=wrap.querySelector("input[name=\"apptook_ds_options[discount_amount][]\"]");var q=wrap.querySelector("input[name=\"apptook_ds_options[discount_qty][]\"]");if(c){c.value="";}if(a){a.value="";}if(q){q.value="0";q.readOnly=true;}}function bindQtyRow(row){if(!row){return;}var qty=row.querySelector(".apptook-ds-discount-qty");var edit=row.querySelector(".apptook-ds-edit-discount-qty");var save=row.querySelector(".apptook-ds-save-discount-qty");if(qty){qty.readOnly=true;}if(edit){edit.addEventListener("click",function(){if(qty){qty.readOnly=false;qty.focus();qty.select&&qty.select();}if(edit){edit.style.display="none";}if(save){save.style.display="inline-flex";}});}if(save){save.addEventListener("click",function(){if(qty){var n=parseInt(qty.value||"0",10);qty.value=String(isNaN(n)||n<0?0:n);qty.readOnly=true;}if(save){save.style.display="none";}if(edit){edit.style.display="inline-flex";}});}}function bindRemove(btn){btn.addEventListener("click",function(){var rows=wrap.querySelectorAll(".apptook-ds-discount-row");if(rows.length<=1){clearFirstRow();return;}var row=btn.closest(".apptook-ds-discount-row");if(row){row.remove();}});}wrap.querySelectorAll(".apptook-ds-discount-row").forEach(bindQtyRow);wrap.querySelectorAll(".apptook-ds-remove-discount-row").forEach(bindRemove);add.addEventListener("click",function(){var count=wrap.querySelectorAll(".apptook-ds-discount-row").length;if(count>=10){return;}var row=document.createElement("div");row.className="apptook-ds-discount-row";row.style.cssText="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;";var inputCode=document.createElement("input");inputCode.type="text";inputCode.className="regular-text";inputCode.name="apptook_ds_options[discount_code][]";inputCode.placeholder="โค้ด เช่น SAVE100";inputCode.style.maxWidth="280px";var inputAmount=document.createElement("input");inputAmount.type="number";inputAmount.min="0";inputAmount.step="0.01";inputAmount.className="small-text";inputAmount.name="apptook_ds_options[discount_amount][]";inputAmount.placeholder="ส่วนลด (บาท)";var inputQty=document.createElement("input");inputQty.type="number";inputQty.min="0";inputQty.step="1";inputQty.className="small-text apptook-ds-discount-qty";inputQty.name="apptook_ds_options[discount_qty][]";inputQty.placeholder="จำนวนโค้ด";inputQty.value="0";inputQty.readOnly=true;var edit=document.createElement("button");edit.type="button";edit.className="button apptook-ds-edit-discount-qty";edit.textContent="แก้ไขจำนวน";var save=document.createElement("button");save.type="button";save.className="button button-primary apptook-ds-save-discount-qty";save.textContent="ตกลง";save.style.display="none";var remove=document.createElement("button");remove.type="button";remove.className="button apptook-ds-remove-discount-row";remove.textContent="ลบ";row.appendChild(inputCode);row.appendChild(inputAmount);row.appendChild(inputQty);row.appendChild(edit);row.appendChild(save);row.appendChild(remove);wrap.appendChild(row);bindQtyRow(row);bindRemove(remove);});})();</script>';
 	}
 
 	public function render_settings_page(): void {
@@ -1366,6 +1525,34 @@ final class Apptook_DS_Admin {
 		exit;
 	}
 
+	private function increment_coupon_stock(string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($coupon_code === '') {
+			return false;
+		}
+		$opts = get_option('apptook_ds_options', array());
+		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? array_values((array) $opts['discount_code_rows']) : array();
+		$changed = false;
+		foreach ($rows as $idx => $row) {
+			if (! is_array($row)) {
+				continue;
+			}
+			$code = isset($row['code']) ? strtoupper(sanitize_text_field((string) $row['code'])) : '';
+			if ($code !== $coupon_code) {
+				continue;
+			}
+			$qty = isset($row['qty']) ? max(0, (int) $row['qty']) : 0;
+			$rows[$idx]['qty'] = $qty + 1;
+			$changed = true;
+			break;
+		}
+		if ($changed) {
+			$opts['discount_code_rows'] = $rows;
+			update_option('apptook_ds_options', $opts);
+		}
+		return $changed;
+	}
+
 	public function handle_reject_order(): void {
 		if (! current_user_can('manage_options')) {
 			wp_die(esc_html__('ไม่มีสิทธิ์', 'apptook-digital-store'));
@@ -1381,6 +1568,10 @@ final class Apptook_DS_Admin {
 		}
 
 		$old_status = (string) get_post_meta($order_id, '_apptook_status', true);
+		$coupon_code = strtoupper((string) get_post_meta($order_id, '_apptook_coupon_code', true));
+		if ($coupon_code !== '' && $old_status !== Apptook_DS_Post_Types::ORDER_REJECTED) {
+			$this->increment_coupon_stock($coupon_code);
+		}
 		update_post_meta($order_id, '_apptook_status', Apptook_DS_Post_Types::ORDER_REJECTED);
 
 		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {

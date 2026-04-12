@@ -31,6 +31,8 @@ let currentExtensionVersion = '';
 let workerWatchdogTimer = null;
 let workerHealthProbePromise = null;
 let runtimeDeviceFingerprint = '';
+const telemetryDedupeCache = new Map();
+const TELEMETRY_DEDUPE_WINDOW_MS = 3000;
 
 function getAuthOutputChannel() {
   if (!authOutput) {
@@ -45,6 +47,75 @@ function logAuthInfo(...args) {
   } catch (_err) {
     // ignore logging failures
   }
+}
+
+function sanitizeTelemetryPayload(value) {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const blockedKeyPattern = /(key|token|secret|password|license|activation|code)/i;
+  const nextPayload = {};
+
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = String(rawKey || '').trim();
+    if (!key) {
+      continue;
+    }
+
+    if (blockedKeyPattern.test(key)) {
+      continue;
+    }
+
+    if (rawValue === null || rawValue === undefined) {
+      nextPayload[key] = rawValue;
+      continue;
+    }
+
+    const valueType = typeof rawValue;
+    if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
+      nextPayload[key] = rawValue;
+      continue;
+    }
+
+    if (Array.isArray(rawValue)) {
+      nextPayload[key] = rawValue.length;
+      continue;
+    }
+
+    if (valueType === 'object') {
+      nextPayload[key] = '[object]';
+    }
+  }
+
+  return nextPayload;
+}
+
+function shouldLogTelemetry(eventName, payload, timestampMs) {
+  const normalizedEvent = String(eventName || '').trim();
+  if (!normalizedEvent) {
+    return false;
+  }
+
+  const now = Number.isFinite(Number(timestampMs)) ? Number(timestampMs) : Date.now();
+  const signature = `${normalizedEvent}::${JSON.stringify(payload || {})}`;
+  const previousAt = toFiniteNumber(telemetryDedupeCache.get(signature), 0) || 0;
+
+  if (previousAt && (now - previousAt) < TELEMETRY_DEDUPE_WINDOW_MS) {
+    return false;
+  }
+
+  telemetryDedupeCache.set(signature, now);
+
+  if (telemetryDedupeCache.size > 250) {
+    for (const [cachedSignature, cachedAt] of telemetryDedupeCache.entries()) {
+      if ((now - toFiniteNumber(cachedAt, 0)) > (TELEMETRY_DEDUPE_WINDOW_MS * 4)) {
+        telemetryDedupeCache.delete(cachedSignature);
+      }
+    }
+  }
+
+  return true;
 }
 
 function cloneJson(value) {
@@ -1322,6 +1393,22 @@ function wireAuthBridgeToWebview(webview) {
 
   webview.onDidReceiveMessage(async (message) => {
     if (!message || !message.type) {
+      return;
+    }
+
+    if (message.type === 'telemetry') {
+      const telemetry = message.telemetry && typeof message.telemetry === 'object' ? message.telemetry : {};
+      const eventName = String(telemetry.event || '').trim();
+      const payload = sanitizeTelemetryPayload(telemetry.payload);
+      const ts = toFiniteNumber(telemetry.ts, Date.now()) || Date.now();
+
+      if (shouldLogTelemetry(eventName, payload, ts)) {
+        logAuthInfo('[TELEMETRY]', JSON.stringify({
+          event: eventName || 'unknown',
+          ts,
+          payload
+        }));
+      }
       return;
     }
 

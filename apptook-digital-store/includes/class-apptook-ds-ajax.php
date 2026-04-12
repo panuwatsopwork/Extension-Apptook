@@ -30,6 +30,8 @@ final class Apptook_DS_Ajax {
 		add_action('wp_ajax_nopriv_apptook_ds_login_popup', array($this, 'login_popup'));
 		add_action('wp_ajax_apptook_ds_login_popup', array($this, 'login_popup'));
 		add_action('wp_ajax_apptook_ds_subscription_statuses', array($this, 'subscription_statuses'));
+		add_action('wp_ajax_apptook_ds_coupon_reserve', array($this, 'coupon_reserve'));
+		add_action('wp_ajax_apptook_ds_coupon_release', array($this, 'coupon_release'));
 	}
 
 	private static function first_admin_user_id(): int {
@@ -78,7 +80,7 @@ final class Apptook_DS_Ajax {
 		);
 	}
 
-	private function create_mobile_session(int $product_id, int $user_id, string $price): string {
+	private function create_mobile_session(int $product_id, int $user_id, string $price, string $coupon_code = '', bool $coupon_reserved = false): string {
 		$session_token = wp_generate_password(40, false, false);
 		set_transient(
 			'apptook_ds_mobile_session_' . $session_token,
@@ -86,6 +88,8 @@ final class Apptook_DS_Ajax {
 				'product_id' => $product_id,
 				'user_id' => $user_id,
 				'price' => $price,
+				'coupon_code' => $coupon_code,
+				'coupon_reserved' => $coupon_reserved ? 1 : 0,
 				'mobile_slip_attachment_id' => 0,
 				'mobile_uploaded_at' => '',
 			),
@@ -114,7 +118,162 @@ final class Apptook_DS_Ajax {
 		return is_string($url) ? $url : '';
 	}
 
-	private function create_order_record(int $product_id, int $customer_id, string $price, string $initial_status = Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT): int {
+	private function get_discount_rows(): array {
+		$opts = get_option('apptook_ds_options', array());
+		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? (array) $opts['discount_code_rows'] : array();
+		$out = array();
+		foreach ($rows as $row) {
+			if (! is_array($row)) {
+				continue;
+			}
+			$code = isset($row['code']) ? strtoupper(sanitize_text_field((string) $row['code'])) : '';
+			$amount = isset($row['amount']) ? (float) $row['amount'] : 0;
+			$qty = isset($row['qty']) ? max(0, (int) $row['qty']) : 0;
+			if ($code === '' || $amount <= 0) {
+				continue;
+			}
+			$out[] = array('code' => $code, 'amount' => $amount, 'qty' => $qty);
+		}
+		return $out;
+	}
+
+	private function get_coupon_discount_amount(string $coupon_code): float {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($coupon_code === '') {
+			return 0.0;
+		}
+		$rows = $this->get_discount_rows();
+		foreach ($rows as $row) {
+			if ((string) $row['code'] === $coupon_code) {
+				return (float) $row['amount'];
+			}
+		}
+		return 0.0;
+	}
+
+	private function decrement_coupon_stock(string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($coupon_code === '') {
+			return false;
+		}
+		$opts = get_option('apptook_ds_options', array());
+		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? array_values((array) $opts['discount_code_rows']) : array();
+		$changed = false;
+		foreach ($rows as $idx => $row) {
+			if (! is_array($row)) {
+				continue;
+			}
+			$code = isset($row['code']) ? strtoupper(sanitize_text_field((string) $row['code'])) : '';
+			if ($code !== $coupon_code) {
+				continue;
+			}
+			$qty = isset($row['qty']) ? max(0, (int) $row['qty']) : 0;
+			if ($qty > 0) {
+				$rows[$idx]['qty'] = $qty - 1;
+				$changed = true;
+			}
+			break;
+		}
+		if ($changed) {
+			$opts['discount_code_rows'] = $rows;
+			update_option('apptook_ds_options', $opts);
+		}
+		return $changed;
+	}
+
+	private function increment_coupon_stock(string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($coupon_code === '') {
+			return false;
+		}
+		$opts = get_option('apptook_ds_options', array());
+		$rows = isset($opts['discount_code_rows']) && is_array($opts['discount_code_rows']) ? array_values((array) $opts['discount_code_rows']) : array();
+		$changed = false;
+		foreach ($rows as $idx => $row) {
+			if (! is_array($row)) {
+				continue;
+			}
+			$code = isset($row['code']) ? strtoupper(sanitize_text_field((string) $row['code'])) : '';
+			if ($code !== $coupon_code) {
+				continue;
+			}
+			$qty = isset($row['qty']) ? max(0, (int) $row['qty']) : 0;
+			$rows[$idx]['qty'] = $qty + 1;
+			$changed = true;
+			break;
+		}
+		if ($changed) {
+			$opts['discount_code_rows'] = $rows;
+			update_option('apptook_ds_options', $opts);
+		}
+		return $changed;
+	}
+
+	private function get_coupon_reserve_key(int $user_id, int $product_id, string $coupon_code): string {
+		return 'apptook_ds_coupon_reserve_' . md5($user_id . '|' . $product_id . '|' . strtoupper($coupon_code));
+	}
+
+	private function reserve_coupon(int $user_id, int $product_id, string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($user_id <= 0 || $product_id <= 0 || $coupon_code === '') {
+			return false;
+		}
+		$key = $this->get_coupon_reserve_key($user_id, $product_id, $coupon_code);
+		$existing = get_transient($key);
+		if (is_array($existing)) {
+			set_transient($key, $existing, 2 * HOUR_IN_SECONDS);
+			return true;
+		}
+		if (! $this->decrement_coupon_stock($coupon_code)) {
+			return false;
+		}
+		set_transient(
+			$key,
+			array(
+				'user_id' => $user_id,
+				'product_id' => $product_id,
+				'coupon_code' => $coupon_code,
+				'reserved_at' => current_time('mysql', true),
+			),
+			2 * HOUR_IN_SECONDS
+		);
+		return true;
+	}
+
+	private function has_coupon_reserve(int $user_id, int $product_id, string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($user_id <= 0 || $product_id <= 0 || $coupon_code === '') {
+			return false;
+		}
+		$key = $this->get_coupon_reserve_key($user_id, $product_id, $coupon_code);
+		$reserve = get_transient($key);
+		return is_array($reserve);
+	}
+
+	private function release_coupon_reserve(int $user_id, int $product_id, string $coupon_code): bool {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($user_id <= 0 || $product_id <= 0 || $coupon_code === '') {
+			return false;
+		}
+		$key = $this->get_coupon_reserve_key($user_id, $product_id, $coupon_code);
+		$reserve = get_transient($key);
+		if (! is_array($reserve)) {
+			return false;
+		}
+		delete_transient($key);
+		return $this->increment_coupon_stock($coupon_code);
+	}
+
+	private function consume_coupon_reserve(int $user_id, int $product_id, string $coupon_code): void {
+		$coupon_code = strtoupper(trim($coupon_code));
+		if ($user_id <= 0 || $product_id <= 0 || $coupon_code === '') {
+			return;
+		}
+		$key = $this->get_coupon_reserve_key($user_id, $product_id, $coupon_code);
+		delete_transient($key);
+	}
+
+	private function create_order_record(int $product_id, int $customer_id, string $price, string $initial_status = Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT, string $coupon_code = '', bool $coupon_already_reserved = false): int {
 		$admin_uid = self::first_admin_user_id();
 		$old_uid   = get_current_user_id();
 		wp_set_current_user($admin_uid);
@@ -158,6 +317,14 @@ final class Apptook_DS_Ajax {
 		update_post_meta($post_id, '_apptook_mobile_uploaded_at', '');
 		update_post_meta($post_id, '_apptook_customer_confirmed_at', '');
 		update_post_meta($post_id, '_apptook_license_key', '');
+		if ($coupon_code !== '') {
+			update_post_meta($post_id, '_apptook_coupon_code', $coupon_code);
+			if ($coupon_already_reserved) {
+				$this->consume_coupon_reserve($customer_id, $product_id, $coupon_code);
+			} else {
+				$this->decrement_coupon_stock($coupon_code);
+			}
+		}
 
 		if (class_exists('Apptook_DS_External_DB') && Apptook_DS_External_DB::instance()->is_configured()) {
 			Apptook_DS_External_DB::instance()->upsert_order_from_wp((int) $post_id);
@@ -165,6 +332,40 @@ final class Apptook_DS_Ajax {
 		}
 
 		return (int) $post_id;
+	}
+
+	public function coupon_reserve(): void {
+		check_ajax_referer('apptook_ds_public', 'nonce');
+		if (! is_user_logged_in()) {
+			wp_send_json_error(array('message' => __('กรุณาเข้าสู่ระบบก่อน', 'apptook-digital-store')), 401);
+		}
+		$product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+		$coupon_code = isset($_POST['coupon_code']) ? strtoupper(sanitize_text_field(wp_unslash((string) $_POST['coupon_code']))) : '';
+		if ($product_id <= 0 || $coupon_code === '') {
+			wp_send_json_error(array('message' => __('ข้อมูลไม่ถูกต้อง', 'apptook-digital-store')), 400);
+		}
+		if ($this->get_coupon_discount_amount($coupon_code) <= 0) {
+			wp_send_json_error(array('message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+		}
+		$user_id = get_current_user_id();
+		if (! $this->reserve_coupon($user_id, $product_id, $coupon_code)) {
+			wp_send_json_error(array('message' => __('โค้ดนี้หมดแล้ว', 'apptook-digital-store')), 400);
+		}
+		wp_send_json_success(array('reserved' => true));
+	}
+
+	public function coupon_release(): void {
+		check_ajax_referer('apptook_ds_public', 'nonce');
+		if (! is_user_logged_in()) {
+			wp_send_json_error(array('message' => __('กรุณาเข้าสู่ระบบก่อน', 'apptook-digital-store')), 401);
+		}
+		$product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+		$coupon_code = isset($_POST['coupon_code']) ? strtoupper(sanitize_text_field(wp_unslash((string) $_POST['coupon_code']))) : '';
+		if ($product_id <= 0 || $coupon_code === '') {
+			wp_send_json_error(array('message' => __('ข้อมูลไม่ถูกต้อง', 'apptook-digital-store')), 400);
+		}
+		$this->release_coupon_reserve(get_current_user_id(), $product_id, $coupon_code);
+		wp_send_json_success(array('released' => true));
 	}
 
 	public function create_order(): void {
@@ -186,9 +387,26 @@ final class Apptook_DS_Ajax {
 			wp_send_json_error(array('message' => __('สินค้านี้ยังไม่ตั้งราคา', 'apptook-digital-store')), 400);
 		}
 
+		$coupon_code = isset($_POST['coupon_code']) ? strtoupper(sanitize_text_field(wp_unslash((string) $_POST['coupon_code']))) : '';
+		$coupon_discount = $this->get_coupon_discount_amount($coupon_code);
+		$coupon_reserved = false;
+		if ($coupon_code !== '') {
+			if ($coupon_discount <= 0) {
+				wp_send_json_error(array('message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+			}
+			$coupon_reserved = $this->has_coupon_reserve(get_current_user_id(), $product_id, $coupon_code);
+			if (! $coupon_reserved) {
+				$coupon_reserved = $this->reserve_coupon(get_current_user_id(), $product_id, $coupon_code);
+			}
+			if (! $coupon_reserved) {
+				wp_send_json_error(array('message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+			}
+		}
+		$final_price = max(0, ((float) $price) - $coupon_discount);
+
 		$opts = get_option('apptook_ds_options', array());
 		$user_id = get_current_user_id();
-		$session_token = $this->create_mobile_session($product_id, $user_id, $price);
+		$session_token = $this->create_mobile_session($product_id, $user_id, (string) $final_price, $coupon_code, $coupon_reserved);
 		$verify = $this->issue_mobile_verify_token($session_token, $user_id);
 		$mobile_verify_qr_url = add_query_arg(
 			array(
@@ -203,7 +421,8 @@ final class Apptook_DS_Ajax {
 				'order_id'       => 0,
 				'mobile_session_token' => $session_token,
 				'product_id'     => $product_id,
-				'amount'         => $price,
+				'coupon_code'    => $coupon_code,
+				'amount'         => (string) $final_price,
 				'promptpay_id'   => isset($opts['promptpay_id']) ? (string) $opts['promptpay_id'] : '',
 				'qr_image_url'   => isset($opts['qr_image_url']) ? (string) $opts['qr_image_url'] : '',
 				'payment_note'   => isset($opts['payment_note']) ? (string) $opts['payment_note'] : '',
@@ -322,6 +541,7 @@ final class Apptook_DS_Ajax {
 		$current_user_id = get_current_user_id();
 		$order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
 		$product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+		$coupon_code = isset($_POST['coupon_code']) ? strtoupper(sanitize_text_field(wp_unslash((string) $_POST['coupon_code']))) : '';
 
 		if ($order_id > 0) {
 			check_ajax_referer('apptook_ds_upload_' . $order_id, 'nonce');
@@ -378,11 +598,28 @@ final class Apptook_DS_Ajax {
 				wp_send_json_error(array('message' => __('สินค้านี้ยังไม่ตั้งราคา', 'apptook-digital-store')), 400);
 			}
 
+			$coupon_discount = $this->get_coupon_discount_amount($coupon_code);
+			$coupon_reserved = false;
+			if ($coupon_code !== '') {
+				if ($coupon_discount <= 0) {
+					wp_send_json_error(array('message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+				}
+				$coupon_reserved = $this->has_coupon_reserve($current_user_id, $product_id, $coupon_code);
+				if (! $coupon_reserved) {
+					$coupon_reserved = $this->reserve_coupon($current_user_id, $product_id, $coupon_code);
+				}
+				if (! $coupon_reserved) {
+					wp_send_json_error(array('message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+				}
+			}
+			$final_price = max(0, ((float) $price) - $coupon_discount);
 			$order_id = $this->create_order_record(
 				$product_id,
 				$current_user_id,
-				$price,
-				Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT
+				(string) $final_price,
+				Apptook_DS_Post_Types::ORDER_PENDING_PAYMENT,
+				$coupon_code,
+				$coupon_reserved
 			);
 			if ($order_id <= 0) {
 				wp_send_json_error(array('message' => __('ไม่สามารถสร้างออเดอร์ได้', 'apptook-digital-store')), 500);
@@ -470,6 +707,8 @@ final class Apptook_DS_Ajax {
 		$user_id = (int) ($session['user_id'] ?? 0);
 		$product_id = (int) ($session['product_id'] ?? 0);
 		$price = (string) ($session['price'] ?? '');
+		$coupon_code = isset($session['coupon_code']) ? strtoupper(sanitize_text_field((string) $session['coupon_code'])) : '';
+		$coupon_reserved = ! empty($session['coupon_reserved']);
 		$slip_id = (int) ($session['mobile_slip_attachment_id'] ?? 0);
 		if ($user_id !== get_current_user_id()) {
 			wp_send_json_error(array('code' => 'forbidden', 'message' => __('ไม่มีสิทธิ์เข้าถึงรายการนี้', 'apptook-digital-store')), 403);
@@ -481,11 +720,19 @@ final class Apptook_DS_Ajax {
 			wp_send_json_error(array('code' => 'no_slip', 'message' => __('ยังไม่พบสลิปจากมือถือ', 'apptook-digital-store')), 400);
 		}
 
+		if ($coupon_code !== '' && $this->get_coupon_discount_amount($coupon_code) <= 0) {
+			if ($coupon_reserved) {
+				$this->release_coupon_reserve($user_id, $product_id, $coupon_code);
+			}
+			wp_send_json_error(array('code' => 'coupon_unavailable', 'message' => __('โค้ดส่วนลดไม่ถูกต้องหรือหมดจำนวนแล้ว', 'apptook-digital-store')), 400);
+		}
 		$order_id = $this->create_order_record(
 			$product_id,
 			$user_id,
 			$price,
-			Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM
+			Apptook_DS_Post_Types::ORDER_SLIP_UPLOADED_WAITING_CUSTOMER_CONFIRM,
+			$coupon_code,
+			$coupon_reserved
 		);
 		if ($order_id <= 0) {
 			wp_send_json_error(array('code' => 'create_order_failed', 'message' => __('ไม่สามารถสร้างคำขอซื้อได้', 'apptook-digital-store')), 500);

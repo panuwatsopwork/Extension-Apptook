@@ -160,8 +160,31 @@
 		openModal(html);
 	}
 
+	function markProductDetailCouponCommitted(productId, couponCode) {
+		var pdBuyBtn = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+		if (!pdBuyBtn) return;
+		var btnProductId = String(pdBuyBtn.getAttribute('data-product-id') || '').trim();
+		if (!btnProductId || String(productId || '').trim() !== btnProductId) return;
+		var currentCode = String(pdBuyBtn.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+		var targetCode = String(couponCode || '').trim().toUpperCase();
+		if (!currentCode || !targetCode || currentCode !== targetCode) return;
+		pdBuyBtn.setAttribute('data-pd-coupon-committed', '1');
+	}
+
 	function showPayStep(data) {
 		var amountText = esc(String(data.amount || '0'));
+		var reservedCouponCode = data && data.coupon_code ? String(data.coupon_code).trim().toUpperCase() : '';
+		var releaseSent = false;
+		function releaseReservedCouponOnce() {
+			if (releaseSent) return;
+			if (!reservedCouponCode) return;
+			if (!data || !data.product_id) return;
+			releaseSent = true;
+			postAjax('apptook_ds_coupon_release', {
+				product_id: String(data.product_id),
+				coupon_code: reservedCouponCode,
+			}).catch(function () {});
+		}
 		var promptpayText = data.promptpay_id ? esc(String(data.promptpay_id)) : '-';
 		var referenceText = data.order_ref
 			? esc(String(data.order_ref))
@@ -216,10 +239,16 @@
 			'</div>';
 
 		var overlay = openModal(html);
+		overlay.addEventListener('click', function (e) {
+			if (e.target === overlay || e.target.closest('[data-apptook-close]')) {
+				releaseReservedCouponOnce();
+			}
+		});
 		var errEl = qs('[data-apptook-err]', overlay);
 		var nextBtn = qs('[data-apptook-next-slip]', overlay);
 		if (nextBtn) {
 			nextBtn.addEventListener('click', function () {
+				releaseSent = true;
 				closeModal(overlay);
 				showSlipStep(data);
 			});
@@ -445,6 +474,7 @@
 				cfd.append('nonce', data.mobile_confirm_nonce);
 				postFormData('apptook_ds_mobile_verify_confirm', cfd).then(function (res) {
 					if (!res.success) throw new Error((res.data && res.data.message) || apptookDS.i18n.error);
+					markProductDetailCouponCommitted(data.product_id, data.coupon_code);
 					closeModal(overlay);
 					showToastSuccess((res.data && res.data.message) || 'ส่งหลักฐานสำเร็จ รอแอดมินตรวจสอบ');
 				}).catch(function (e) {
@@ -477,6 +507,7 @@
 			var fd = new FormData();
 			if (data.order_id) fd.append('order_id', String(data.order_id));
 			if (data.product_id) fd.append('product_id', String(data.product_id));
+			if (data.coupon_code) fd.append('coupon_code', String(data.coupon_code));
 			fd.append('nonce', data.upload_nonce);
 			fd.append('slip', f);
 			sendBtn.disabled = true;
@@ -484,6 +515,7 @@
 			postFormData('apptook_ds_upload_slip', fd)
 				.then(function (res) {
 					if (!res.success) throw new Error((res.data && res.data.message) || apptookDS.i18n.error);
+					markProductDetailCouponCommitted(data.product_id, data.coupon_code);
 					closeModal(overlay);
 					showToastSuccess(res.data && res.data.message ? res.data.message : 'อัปโหลดสลิปแล้ว');
 				})
@@ -506,7 +538,7 @@
 		});
 	}
 
-	function startOrderFlow(productId, triggerBtn) {
+	function startOrderFlow(productId, triggerBtn, couponCode) {
 		if (!productId || typeof apptookDS === 'undefined') {
 			return;
 		}
@@ -514,12 +546,22 @@
 			triggerBtn.disabled = true;
 		}
 
-		postAjax('apptook_ds_create_order', { product_id: productId })
+		function releaseCouponOnCreateFailed() {
+			var code = String(couponCode || '').trim().toUpperCase();
+			if (!code) return;
+			postAjax('apptook_ds_coupon_release', {
+				product_id: String(productId),
+				coupon_code: code,
+			}).catch(function () {});
+		}
+
+		postAjax('apptook_ds_create_order', { product_id: productId, coupon_code: (couponCode || '') })
 			.then(function (res) {
 				if (triggerBtn) {
 					triggerBtn.disabled = false;
 				}
 				if (!res.success) {
+					releaseCouponOnCreateFailed();
 					alert((res.data && res.data.message) || apptookDS.i18n.error);
 					return;
 				}
@@ -529,6 +571,7 @@
 				if (triggerBtn) {
 					triggerBtn.disabled = false;
 				}
+				releaseCouponOnCreateFailed();
 				alert(apptookDS.i18n.error);
 			});
 	}
@@ -598,7 +641,7 @@
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">เลือกระยะเวลา</p><div class="apptook-st-chip-row" data-apptook-month-grid>' + durationHtml + '</div></div>' +
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ประเภทบัญชี</p><div class="apptook-st-chip-row" data-apptook-type-grid>' + typeChipsHtml + '</div></div>' +
 							'<div class="apptook-st-section"><p class="apptook-st-purchase-label">ตัวเลือกสินค้า</p><div class="apptook-st-chip-row" data-apptook-product-grid><button type="button" class="modal-choice-btn is-active" data-choice="product">Standard</button><button type="button" class="modal-choice-btn" data-choice="product">Plus</button></div></div>' +
-							'<div class="apptook-st-promo" data-apptook-promo-wrap><button type="button" class="apptook-st-promo-toggle" data-apptook-promo-toggle><span>มีรหัสโปรโมชั่นหรือคูปองส่วนลดไหม?</span><span class="material-symbols-outlined" data-apptook-promo-icon>expand_more</span></button><div class="apptook-st-promo-panel hidden" data-apptook-promo-panel><div class="apptook-st-promo-row"><input class="apptook-st-promo-input" data-apptook-promo-input placeholder="ใส่รหัสโปรโมชั่น" type="text"/><button type="button" class="apptook-st-promo-apply" data-apptook-promo-apply>นำมาใช้</button></div></div></div>' +
+							'<div class="apptook-st-promo" data-apptook-promo-wrap><button type="button" class="apptook-st-promo-toggle" data-apptook-promo-toggle><span>มีรหัสโปรโมชั่นหรือคูปองส่วนลดไหม?</span><span class="material-symbols-outlined" data-apptook-promo-icon>expand_more</span></button><div class="apptook-st-promo-panel hidden" data-apptook-promo-panel><div class="apptook-st-promo-row"><input class="apptook-st-promo-input" data-apptook-promo-input placeholder="ใส่รหัสโปรโมชั่น" type="text"/><button type="button" class="apptook-st-promo-apply" data-apptook-promo-apply>นำมาใช้</button></div><p class="apptook-st-promo-feedback" data-apptook-promo-feedback></p></div></div>' +
 						'</div>' +
 					'</div>' +
 					'<div class="apptook-st-purchase-actions">' +
@@ -651,8 +694,24 @@
 			animatePdPrice(subEl, monthly, ' ต่อเดือน');
 		}
 
+		function setPromoFeedback(message, state) {
+			var feedback = overlay.querySelector('[data-apptook-promo-feedback]');
+			if (!feedback) return;
+			feedback.textContent = message || '';
+			feedback.classList.remove('is-error', 'is-success');
+			if (state === 'error') feedback.classList.add('is-error');
+			if (state === 'success') feedback.classList.add('is-success');
+		}
+
 		overlay.addEventListener('click', function (e) {
 			if (e.target === overlay || e.target.closest('[data-apptook-close]')) {
+				var closingCouponCode = String(overlay.getAttribute('data-apptook-coupon-code') || '').trim().toUpperCase();
+				if (closingCouponCode) {
+					postAjax('apptook_ds_coupon_release', {
+						product_id: String(payload.productId || ''),
+						coupon_code: closingCouponCode,
+					}).catch(function () {});
+				}
 				overlay.remove();
 				return;
 			}
@@ -708,15 +767,50 @@
 				var promoInput = overlay.querySelector('[data-apptook-promo-input]');
 				var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
 				var configuredCodes = (window.apptookDS && window.apptookDS.discountCodes && typeof window.apptookDS.discountCodes === 'object') ? window.apptookDS.discountCodes : {};
+				var configuredStock = (window.apptookDS && window.apptookDS.discountCodeStock && typeof window.apptookDS.discountCodeStock === 'object') ? window.apptookDS.discountCodeStock : {};
+				var stock = parseInt(configuredStock[code] || '0', 10) || 0;
 				var fixedDiscount = parseFloat(configuredCodes[code] || '0') || 0;
+				if (!code || fixedDiscount <= 0) {
+					overlay.setAttribute('data-apptook-coupon-discount', '0');
+					overlay.setAttribute('data-apptook-coupon-code', '');
+					updateLivePrice();
+					setPromoFeedback('โค้ดส่วนลดไม่ถูกต้อง', 'error');
+					return;
+				}
+				if (stock <= 0) {
+					overlay.setAttribute('data-apptook-coupon-discount', '0');
+					overlay.setAttribute('data-apptook-coupon-code', '');
+					updateLivePrice();
+					setPromoFeedback('โค้ดนี้หมดแล้ว', 'error');
+					return;
+				}
 				var activeDurationPromo = getActiveDuration();
 				var modifierPromo = getActiveTypeModifier();
 				var monthlyPromo = activeDurationPromo.base + modifierPromo;
 				var baseTotalPromo = monthlyPromo * activeDurationPromo.months;
 				var discount = fixedDiscount;
 				if (discount > baseTotalPromo) discount = baseTotalPromo;
-				overlay.setAttribute('data-apptook-coupon-discount', String(discount));
-				updateLivePrice();
+				postAjax('apptook_ds_coupon_reserve', {
+					product_id: String(payload.productId || ''),
+					coupon_code: code,
+				}).then(function (reserveRes) {
+					if (!reserveRes || !reserveRes.success) {
+						overlay.setAttribute('data-apptook-coupon-discount', '0');
+						overlay.setAttribute('data-apptook-coupon-code', '');
+						updateLivePrice();
+						setPromoFeedback((reserveRes && reserveRes.data && reserveRes.data.message) ? reserveRes.data.message : 'โค้ดนี้หมดแล้ว', 'error');
+						return;
+					}
+					overlay.setAttribute('data-apptook-coupon-discount', String(discount));
+					overlay.setAttribute('data-apptook-coupon-code', code);
+					updateLivePrice();
+					setPromoFeedback('ใช้โค้ดสำเร็จ', 'success');
+				}).catch(function () {
+					overlay.setAttribute('data-apptook-coupon-discount', '0');
+					overlay.setAttribute('data-apptook-coupon-code', '');
+					updateLivePrice();
+					setPromoFeedback('ไม่สามารถใช้โค้ดส่วนลดได้', 'error');
+				});
 				return;
 			}
 		});
@@ -724,8 +818,9 @@
 		var confirmBtn = overlay.querySelector('.apptook-st-purchase-confirm');
 		if (confirmBtn) {
 			confirmBtn.addEventListener('click', function () {
+				var appliedCouponCode = String(overlay.getAttribute('data-apptook-coupon-code') || '').trim().toUpperCase();
 				overlay.remove();
-				startOrderFlow(payload.productId, payload.triggerBtn || null);
+				startOrderFlow(payload.productId, payload.triggerBtn || null, appliedCouponCode);
 			});
 		}
 
@@ -881,6 +976,61 @@
 		window.setInterval(cycle, intervalMs);
 	}
 
+	function initMySubscriptionRealtime() {
+		var items = Array.prototype.slice.call(document.querySelectorAll('.apptook-my-subscription__item[data-order-id]'));
+		if (!items.length) return;
+		if (!window.apptookDS || !apptookDS.ajaxUrl || !apptookDS.nonce) return;
+
+		var mapById = {};
+		items.forEach(function (item) {
+			var id = parseInt(item.getAttribute('data-order-id') || '0', 10);
+			if (!isNaN(id) && id > 0) {
+				mapById[id] = item;
+			}
+		});
+
+		function applyState(itemEl, row) {
+			if (!itemEl || !row) return;
+			var badge = itemEl.querySelector('[data-apptook-sub-badge]');
+			var badgeIcon = itemEl.querySelector('[data-apptook-sub-badge-icon]');
+			var badgeText = itemEl.querySelector('[data-apptook-sub-badge-text]');
+			var alertEl = itemEl.querySelector('[data-apptook-sub-alert]');
+
+			var nextState = String(row.ui_state || 'inactive');
+			if (badge) {
+				badge.classList.remove('is-active', 'is-inactive', 'is-cancelled');
+				badge.classList.add('is-' + nextState);
+			}
+			if (badgeIcon) {
+				badgeIcon.textContent = String(row.ui_state_icon || 'schedule');
+			}
+			if (badgeText) {
+				badgeText.textContent = String(row.ui_state_label || 'Inactive');
+			}
+			if (alertEl) {
+				alertEl.classList.remove('is-safe', 'is-warning', 'is-danger');
+				alertEl.classList.add('is-' + String(row.alert_state || 'safe'));
+				alertEl.textContent = String(row.alert_text || '');
+			}
+		}
+
+		function refreshStatuses() {
+			postAjax('apptook_ds_subscription_statuses')
+				.then(function (res) {
+					if (!res || !res.success || !res.data || !Array.isArray(res.data.items)) return;
+					res.data.items.forEach(function (row) {
+						var oid = parseInt((row && row.order_id) || '0', 10);
+						if (isNaN(oid) || oid <= 0 || !mapById[oid]) return;
+						applyState(mapById[oid], row);
+					});
+				})
+				.catch(function () {});
+		}
+
+		refreshStatuses();
+		window.setInterval(refreshStatuses, 5000);
+	}
+
 	function initOrderHistoryDateInputs() {
 		var inputs = Array.prototype.slice.call(document.querySelectorAll('.apptook-order-history__date-input'));
 		if (!inputs.length) return;
@@ -1032,8 +1182,56 @@
 			var promoInput = document.querySelector('[data-pd-promo-input]');
 			var code = promoInput ? String(promoInput.value || '').trim().toUpperCase() : '';
 			var configuredCodes = (window.apptookDS && window.apptookDS.discountCodes && typeof window.apptookDS.discountCodes === 'object') ? window.apptookDS.discountCodes : {};
+			var configuredStock = (window.apptookDS && window.apptookDS.discountCodeStock && typeof window.apptookDS.discountCodeStock === 'object') ? window.apptookDS.discountCodeStock : {};
+			var stock = parseInt(configuredStock[code] || '0', 10) || 0;
 			var fixedDiscount = parsePdNumber(configuredCodes[code] || '0');
 			var pdBuyBtnPromo = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+			var promoPanel = document.querySelector('[data-pd-promo-panel]');
+			var promoMsgEl = document.querySelector('[data-pd-promo-feedback]');
+			if (!promoMsgEl && promoPanel) {
+				promoMsgEl = document.createElement('p');
+				promoMsgEl.className = 'apptook-ds-pd-promo-feedback';
+				promoMsgEl.setAttribute('data-pd-promo-feedback', '1');
+				promoPanel.appendChild(promoMsgEl);
+			}
+			function setPdPromoFeedback(message, isError) {
+				if (!promoMsgEl) return;
+				promoMsgEl.textContent = message || '';
+				promoMsgEl.classList.toggle('is-error', !!isError);
+				promoMsgEl.classList.toggle('is-success', !isError && !!message);
+			}
+			if (!code || fixedDiscount <= 0) {
+				if (pdBuyBtnPromo) {
+					var invalidPrevCode = String(pdBuyBtnPromo.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+					if (invalidPrevCode) {
+						postAjax('apptook_ds_coupon_release', {
+							product_id: String(pdBuyBtnPromo.getAttribute('data-product-id') || ''),
+							coupon_code: invalidPrevCode,
+						}).catch(function () {});
+					}
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', '0');
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-code', '');
+				}
+				updateProductDetailLivePrice(document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]'));
+				setPdPromoFeedback('โค้ดส่วนลดไม่ถูกต้อง', true);
+				return;
+			}
+			if (stock <= 0) {
+				if (pdBuyBtnPromo) {
+					var outPrevCode = String(pdBuyBtnPromo.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+					if (outPrevCode) {
+						postAjax('apptook_ds_coupon_release', {
+							product_id: String(pdBuyBtnPromo.getAttribute('data-product-id') || ''),
+							coupon_code: outPrevCode,
+						}).catch(function () {});
+					}
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', '0');
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-code', '');
+				}
+				updateProductDetailLivePrice(document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]'));
+				setPdPromoFeedback('โค้ดนี้หมดแล้ว', true);
+				return;
+			}
 			if (pdBuyBtnPromo) {
 				var activeDuration = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
 				var durationsRawPromo = pdBuyBtnPromo.getAttribute('data-durations') || '[]';
@@ -1053,8 +1251,34 @@
 				var baseTotalPromo = monthlyPromo * monthsPromo;
 				var discount = fixedDiscount;
 				if (discount > baseTotalPromo) discount = baseTotalPromo;
-				pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', String(discount));
-				updateProductDetailLivePrice(activeDuration);
+				var prevCode = String(pdBuyBtnPromo.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+				if (prevCode && prevCode !== code) {
+					postAjax('apptook_ds_coupon_release', {
+						product_id: String(pdBuyBtnPromo.getAttribute('data-product-id') || ''),
+						coupon_code: prevCode,
+					}).catch(function () {});
+				}
+				postAjax('apptook_ds_coupon_reserve', {
+					product_id: String(pdBuyBtnPromo.getAttribute('data-product-id') || ''),
+					coupon_code: code,
+				}).then(function (reserveRes) {
+					if (!reserveRes || !reserveRes.success) {
+						pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', '0');
+						pdBuyBtnPromo.setAttribute('data-pd-coupon-code', '');
+						updateProductDetailLivePrice(activeDuration);
+						setPdPromoFeedback((reserveRes && reserveRes.data && reserveRes.data.message) || 'โค้ดนี้หมดแล้ว', true);
+						return;
+					}
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', String(discount));
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-code', code);
+					updateProductDetailLivePrice(activeDuration);
+					setPdPromoFeedback('ใช้โค้ดสำเร็จ', false);
+				}).catch(function () {
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-discount', '0');
+					pdBuyBtnPromo.setAttribute('data-pd-coupon-code', '');
+					updateProductDetailLivePrice(activeDuration);
+					setPdPromoFeedback(apptookDS.i18n.error || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง', true);
+				});
 			}
 			return;
 		}
@@ -1070,7 +1294,8 @@
 		e.preventDefault();
 
 		if (buyBtn.classList.contains('apptook-ds-pd-buy-btn')) {
-			startOrderFlow(buyBtn.getAttribute('data-product-id'), buyBtn);
+			var pdAppliedCoupon = String(buyBtn.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+			startOrderFlow(buyBtn.getAttribute('data-product-id'), buyBtn, pdAppliedCoupon);
 			return;
 		}
 
@@ -1148,6 +1373,53 @@
 		});
 	});
 
+	function releaseProductDetailCouponReservation() {
+		var pdBuyBtn = document.querySelector('.apptook-ds-pd-buy-btn.apptook-ds-buy');
+		if (!pdBuyBtn) return;
+		if (pdBuyBtn.getAttribute('data-pd-coupon-released') === '1') return;
+		if (pdBuyBtn.getAttribute('data-pd-coupon-committed') === '1') return;
+		var productId = String(pdBuyBtn.getAttribute('data-product-id') || '').trim();
+		var couponCode = String(pdBuyBtn.getAttribute('data-pd-coupon-code') || '').trim().toUpperCase();
+		if (!productId || !couponCode || !window.apptookDS || !apptookDS.ajaxUrl || !apptookDS.nonce) return;
+
+		pdBuyBtn.setAttribute('data-pd-coupon-released', '1');
+
+		try {
+			var beaconData = new FormData();
+			beaconData.append('action', 'apptook_ds_coupon_release');
+			beaconData.append('nonce', apptookDS.nonce);
+			beaconData.append('product_id', productId);
+			beaconData.append('coupon_code', couponCode);
+			if (navigator.sendBeacon) {
+				navigator.sendBeacon(apptookDS.ajaxUrl, beaconData);
+				return;
+			}
+		} catch (e) {
+			// ignore and fallback to fetch
+		}
+
+		try {
+			var fd = new FormData();
+			fd.append('action', 'apptook_ds_coupon_release');
+			fd.append('nonce', apptookDS.nonce);
+			fd.append('product_id', productId);
+			fd.append('coupon_code', couponCode);
+			fetch(apptookDS.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				keepalive: true,
+				body: fd,
+			}).catch(function () {});
+		} catch (err) {}
+	}
+
+	window.addEventListener('pagehide', function () {
+		releaseProductDetailCouponReservation();
+	});
+	window.addEventListener('beforeunload', function () {
+		releaseProductDetailCouponReservation();
+	});
+
 	var initialPdActive = document.querySelector('.apptook-ds-pd-duration-pill.is-active[data-pd-month]');
 	if (initialPdActive) {
 		updateProductDetailLivePrice(initialPdActive);
@@ -1159,5 +1431,6 @@
 	initCardWaveBuyerTrack();
 	initProductDetailRecentBuyerTicker();
 	initOrderHistoryDateInputs();
+	initMySubscriptionRealtime();
 
 })();

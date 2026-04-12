@@ -1149,6 +1149,22 @@ html body .apptook-st-purchase-overlay .apptook-st-purchase-modal {
 	gap: 0.45rem;
 }
 
+.apptook-st-promo-feedback {
+	margin: 0.45rem 0 0;
+	font-size: 0.82rem;
+	font-weight: 700;
+	min-height: 1.2rem;
+	color: #64748b;
+}
+
+.apptook-st-promo-feedback.is-error {
+	color: #b91c1c;
+}
+
+.apptook-st-promo-feedback.is-success {
+	color: #0f766e;
+}
+
 .apptook-st-promo-input {
 	flex: 1;
 	height: 48px;

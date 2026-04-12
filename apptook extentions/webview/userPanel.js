@@ -125,6 +125,9 @@
     let lastWorkerRecoveryAt = 0;
     let workerRecoveryRequestInFlight = false;
     let lastWorkerRecoveryRequestAt = 0;
+    let loginRequestInFlight = false;
+    let activationRequestInFlight = false;
+    let workerStartRequestInFlight = false;
     const installMarkerChanged = applyInstallMarkerGuard();
     let cachedWebviewState = installMarkerChanged ? {} : (vscode.getState() || {});
     let loopSession = normalizeLoopSession(cachedWebviewState[LOOP_STATE_KEY]);
@@ -1677,6 +1680,12 @@
             syncHostRuntimeSession();
 
             activationCodeInput.value = nextKeyCode;
+            loginRequestInFlight = true;
+            emitTelemetry('loop_rotation_login_start', {
+                reason: String(triggerReason || '').trim() || 'loop_threshold',
+                nextKeyCodeSuffix: nextKeyCode.slice(-6),
+                totalKeys: loopSession && loopSession.totalKeys
+            });
             vscode.postMessage({
                 type: 'login',
                 activationCode: nextKeyCode
@@ -2494,8 +2503,70 @@
         return true;
     }
 
+    function resetUiSingleFlightFlags() {
+        loginRequestInFlight = false;
+        activationRequestInFlight = false;
+        workerStartRequestInFlight = false;
+    }
+
+    function getActionableErrorMessage(rawMessage, fallbackMessage) {
+        const normalizedMessage = String(rawMessage || '').trim();
+        if (!normalizedMessage) {
+            return String(fallbackMessage || '').trim() || 'Operation failed. Please try again.';
+        }
+
+        const lowered = normalizedMessage.toLowerCase();
+        if (lowered.includes('timeout')) {
+            return 'Request timed out. Please retry in a few seconds.';
+        }
+
+        if (lowered.includes('unauthorized') || lowered.includes('invalid api key')) {
+            return 'Authorization failed. Please verify APPTOOK key and backend configuration.';
+        }
+
+        if (lowered.includes('invalid') && lowered.includes('activation')) {
+            return 'Activation key is invalid. Please refresh your APPTOOK session and try again.';
+        }
+
+        if (lowered.includes('network') || lowered.includes('connect')) {
+            return 'Network connection failed. Please check internet access and retry.';
+        }
+
+        return normalizedMessage;
+    }
+
+    function emitTelemetry(eventName, payload = {}) {
+        const normalizedEvent = String(eventName || '').trim();
+        if (!normalizedEvent) {
+            return;
+        }
+
+        const safePayload = payload && typeof payload === 'object' ? payload : {};
+        const telemetryData = {
+            event: normalizedEvent,
+            ts: Date.now(),
+            payload: safePayload
+        };
+
+        try {
+            console.debug('[APPTOOK TELEMETRY]', telemetryData);
+        } catch (_err) {
+            // ignore console failures
+        }
+
+        try {
+            vscode.postMessage({
+                type: 'telemetry',
+                telemetry: telemetryData
+            });
+        } catch (_err) {
+            // ignore host telemetry failures
+        }
+    }
+
     function handlePersistedSessionInvalid(message) {
-        const errorMessage = String(message || '').trim() || 'Saved session is no longer valid. Please log in again.';
+        const errorMessage = getActionableErrorMessage(message, 'Saved session is no longer valid. Please log in again.');
+        resetUiSingleFlightFlags();
         try {
             vscode.postMessage({
                 type: 'logout'
@@ -2511,6 +2582,10 @@
 
     // Handle login
     async function handleLogin() {
+        if (loginRequestInFlight) {
+            return;
+        }
+
         const apptookKey = activationCodeInput.value.trim();
 
         if (!apptookKey) {
@@ -2518,6 +2593,11 @@
             return;
         }
 
+        loginRequestInFlight = true;
+        emitTelemetry('login_start', {
+            source: 'manual',
+            hasLocalSession: Boolean(gasSession && gasSession.currentKeyCode)
+        });
         showLoading(true);
         loginBtn.disabled = true;
         showMessage(loginMessage, 'Checking APPTOOK License Key...', 'info');
@@ -2525,9 +2605,13 @@
         try {
             const result = await loginWithGas(apptookKey);
             if (!result.ok) {
+                emitTelemetry('login_failed', {
+                    source: 'manual',
+                    reason: getActionableErrorMessage(result.message, 'Login failed')
+                });
                 showLoading(false);
                 loginBtn.disabled = false;
-                showMessage(loginMessage, result.message || 'Login failed', 'error');
+                showMessage(loginMessage, getActionableErrorMessage(result.message, 'Login failed'), 'error');
                 return;
             }
 
@@ -2535,24 +2619,34 @@
             if (!licenseCode) {
                 showLoading(false);
                 loginBtn.disabled = false;
-                showMessage(loginMessage, 'No licenseCode returned from server', 'error');
+                showMessage(loginMessage, 'Login response missing license code. Please retry.', 'error');
                 return;
             }
 
             if (!startExtensionLoginWithSession(result.data || null, 'manual')) {
                 showLoading(false);
                 loginBtn.disabled = false;
-                showMessage(loginMessage, 'Cannot start extension login flow', 'error');
+                showMessage(loginMessage, 'Cannot start extension login flow. Please retry.', 'error');
             }
         } catch (err) {
+            emitTelemetry('login_failed', {
+                source: 'manual',
+                reason: getActionableErrorMessage(err && err.message, 'Cannot connect to login service')
+            });
             showLoading(false);
             loginBtn.disabled = false;
-            showMessage(loginMessage, 'Cannot connect to login service', 'error');
+            showMessage(loginMessage, getActionableErrorMessage(err && err.message, 'Cannot connect to login service'), 'error');
+        } finally {
+            loginRequestInFlight = false;
         }
     }
 
     // Handle refresh
     function handleRefresh(source = 'manual') {
+        if (statusRefreshInFlight) {
+            return;
+        }
+
         currentRefreshSource = String(source || 'manual').trim() || 'manual';
         statusRefreshInFlight = true;
         refreshBtn.disabled = true;
@@ -2568,6 +2662,7 @@
     async function handleLogout() {
         logoutBtn.disabled = true;
         logoutBtn.textContent = 'Logging out...';
+        resetUiSingleFlightFlags();
         clearAuthSessionState();
         currentRefreshSource = '';
         transitionToLoginGate('Logged out successfully.');
@@ -2584,6 +2679,11 @@
 
     // Handle activate/deactivate
     function handleActivate() {
+        if (activationRequestInFlight) {
+            return;
+        }
+
+        activationRequestInFlight = true;
         const sessionPayload = buildHostSessionPayload();
         if (!isCursorActive && sessionPayload && sessionPayload.currentKeyCode && !autoRunState.active) {
             beginAutoRunSequence('manual_activate', sessionPayload.currentKeyCode);
@@ -2603,6 +2703,11 @@
 
     // Handle start api-worker
     function handleStartApiWorker() {
+        if (workerStartRequestInFlight) {
+            return;
+        }
+
+        workerStartRequestInFlight = true;
         startApiWorkerBtn.disabled = true;
         startApiWorkerBtn.textContent = 'Starting...';
         vscode.postMessage({
@@ -3124,6 +3229,10 @@
                 loginBtn.disabled = true;
                 break;
             case 'success':
+                loginRequestInFlight = false;
+                emitTelemetry('login_success', {
+                    source: loopRotationState.active ? 'loop_rotation' : 'manual_or_resume'
+                });
                 statusRefreshInFlight = false;
                 if (loopRotationState.awaitingLogin) {
                     loopRotationState.awaitingLogin = false;
@@ -3136,8 +3245,12 @@
                 if (autoRunState.active) {
                     autoRunState.phase = 'awaiting_status';
                 }
+                if (loopRotationState.active && !statusRefreshInFlight) {
+                    handleRefresh('loop_rotation_post_login');
+                }
                 break;
             case 'error':
+                loginRequestInFlight = false;
                 statusRefreshInFlight = false;
                 if (loopRotationState.awaitingLogin) {
                     loopRotationState.awaitingLogin = false;
@@ -3145,12 +3258,19 @@
                     showLoading(false);
                     showMessage(loginMessage, 'Activation code is invalid', 'error');
                     loginBtn.disabled = false;
+                    emitTelemetry('loop_rotation_login_failed', {
+                        reason: getActionableErrorMessage(message.message, 'Loop key activation failed')
+                    });
                     requestLoopKeyRotation('Loop key activation failed');
                     break;
                 }
                 showLoading(false);
                 showMessage(loginMessage, 'Activation code is invalid', 'error');
                 loginBtn.disabled = false;
+                emitTelemetry('login_failed', {
+                    source: autoRunState.active ? 'auto_run' : 'manual_or_resume',
+                    reason: getActionableErrorMessage(message.message, 'Activation code is invalid')
+                });
                 if (gasSession && gasSession.currentKeyCode) {
                     handlePersistedSessionInvalid(message.message || 'Activation code is invalid');
                     break;
@@ -3220,6 +3340,7 @@
                 }
                 break;
             case 'success':
+                activationRequestInFlight = false;
                 showMessage(statusMessage, message.message, 'success');
                 showResumeTransition(message.message, 'starting_worker');
                 if (activeBtn.dataset.state === 'active') {
@@ -3233,10 +3354,11 @@
                 }
                 break;
             case 'error':
+                activationRequestInFlight = false;
                 if (isBackgroundWorkerRecoverySource()) {
                     hideMessage(statusMessage);
                 } else {
-                    showMessage(statusMessage, message.message, 'error');
+                    showMessage(statusMessage, getActionableErrorMessage(message.message, 'Activate failed'), 'error');
                 }
                 hideResumeTransition();
                 if (activeBtn.dataset.state === 'active') {
@@ -3246,7 +3368,7 @@
                     if (isBackgroundWorkerRecoverySource()) {
                         resetAutoRunState();
                     } else {
-                        failAutoRunSequence(message.message || 'Activate failed');
+                        failAutoRunSequence(getActionableErrorMessage(message.message, 'Activate failed'));
                     }
                 }
                 break;
@@ -3273,6 +3395,7 @@
                 startApiWorkerBtn.textContent = 'Starting...';
                 break;
             case 'success':
+                workerStartRequestInFlight = false;
                 hideMessage(statusMessage);
                 hostWorkerHealthKnown = true;
                 hostWorkerHealthy = true;
@@ -3293,6 +3416,7 @@
                 break;
             case 'error':
                 {
+                workerStartRequestInFlight = false;
                 const wasWorkerRecoveryFlow = workerRecoveryRequestInFlight;
                 const quietRecoveryFailure = wasWorkerRecoveryFlow && isBackgroundWorkerRecoverySource();
                 hostWorkerHealthKnown = true;
@@ -3302,7 +3426,7 @@
                 if (quietRecoveryFailure) {
                     hideMessage(statusMessage);
                 } else {
-                    showMessage(statusMessage, message.message, 'error');
+                    showMessage(statusMessage, getActionableErrorMessage(message.message, 'Start API worker failed'), 'error');
                 }
                 hideResumeTransition();
                 startApiWorkerBtn.disabled = false;
@@ -3311,7 +3435,7 @@
                     if (quietRecoveryFailure) {
                         resetAutoRunState();
                     } else {
-                        failAutoRunSequence(message.message || 'Start Api Worker failed');
+                        failAutoRunSequence(getActionableErrorMessage(message.message, 'Start API worker failed'));
                     }
                 }
                 break;
@@ -3330,9 +3454,25 @@
                     showResumeTransition(message.message, 'refreshing');
                 }
                 break;
+            case 'success':
+                emitTelemetry('refresh_success', {
+                    source: String(currentRefreshSource || 'manual').trim() || 'manual'
+                });
+                statusRefreshInFlight = false;
+                currentRefreshSource = '';
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = 'Refresh Status';
+                if (!isBackgroundRefreshSource()) {
+                    hideResumeTransition();
+                }
+                break;
             case 'error':
                 {
                 const backgroundRefresh = isBackgroundRefreshSource();
+                emitTelemetry('refresh_failed', {
+                    source: String(currentRefreshSource || 'manual').trim() || 'manual',
+                    reason: getActionableErrorMessage(message.message, 'Refresh failed')
+                });
                 statusRefreshInFlight = false;
                 currentRefreshSource = '';
                 refreshBtn.disabled = false;
@@ -3341,7 +3481,7 @@
                     hideResumeTransition();
                 }
                 if (!isBackgroundWorkerRecoverySource() && !backgroundRefresh) {
-                    showMessage(statusMessage, message.message || 'Refresh failed', 'error');
+                    showMessage(statusMessage, getActionableErrorMessage(message.message, 'Refresh failed'), 'error');
                 } else {
                     hideMessage(statusMessage);
                 }
@@ -3349,7 +3489,7 @@
                     if (isBackgroundWorkerRecoverySource()) {
                         resetAutoRunState();
                     } else {
-                        failAutoRunSequence(message.message || 'Refresh failed');
+                        failAutoRunSequence(getActionableErrorMessage(message.message, 'Refresh failed'));
                     }
                 }
                 break;
@@ -3572,9 +3712,15 @@
             return;
         }
 
-        if (!beginWorkerRecoveryFlow((message && message.reason) || 'host_watchdog')) {
+        const recoveryReason = (message && message.reason) || 'host_watchdog';
+        if (!beginWorkerRecoveryFlow(recoveryReason)) {
             return;
         }
+
+        emitTelemetry('worker_recovery_triggered', {
+            reason: recoveryReason,
+            isCursorActive: Boolean(isCursorActive)
+        });
 
         updatePremiumSummary(latestUserSnapshot);
 

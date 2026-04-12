@@ -902,7 +902,43 @@ final class Apptook_DS_Public {
 		}
 
 		$opts = get_option( 'apptook_ds_options', array() );
+		$theme_defaults = array(
+			'primary' => '#81D8D0',
+			'surface' => '#F4FBFA',
+			'surface_container' => '#E9EFEF',
+			'text' => '#161D1D',
+			'text_muted' => '#3C4949',
+			'outline' => '#6C7A7A',
+		);
+		$primary_hex = isset( $opts['mkt_theme_primary'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_primary'] ) : '';
+		$surface_hex = isset( $opts['mkt_theme_surface'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_surface'] ) : '';
+		$surface_container_hex = isset( $opts['mkt_theme_surface_container'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_surface_container'] ) : '';
+		$text_hex = isset( $opts['mkt_theme_text'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_text'] ) : '';
+		$text_muted_hex = isset( $opts['mkt_theme_text_muted'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_text_muted'] ) : '';
+		$outline_hex = isset( $opts['mkt_theme_outline'] ) ? sanitize_hex_color( (string) $opts['mkt_theme_outline'] ) : '';
+
+		$primary_hex = $primary_hex ? strtoupper( $primary_hex ) : $theme_defaults['primary'];
+		$surface_hex = $surface_hex ? strtoupper( $surface_hex ) : $theme_defaults['surface'];
+		$surface_container_hex = $surface_container_hex ? strtoupper( $surface_container_hex ) : $theme_defaults['surface_container'];
+		$text_hex = $text_hex ? strtoupper( $text_hex ) : $theme_defaults['text'];
+		$text_muted_hex = $text_muted_hex ? strtoupper( $text_muted_hex ) : $theme_defaults['text_muted'];
+		$outline_hex = $outline_hex ? strtoupper( $outline_hex ) : $theme_defaults['outline'];
+
+		$primary_rgb = $this->hex_to_rgb( $primary_hex );
+		if ( $load_global_shell ) {
+			$theme_css = '.apptook-stitch{'
+				. '--st-primary:' . esc_attr( $primary_hex ) . ';'
+				. '--st-primary-rgb:' . esc_attr( $primary_rgb ) . ';'
+				. '--st-surface:' . esc_attr( $surface_hex ) . ';'
+				. '--st-surface-container:' . esc_attr( $surface_container_hex ) . ';'
+				. '--st-on-surface:' . esc_attr( $text_hex ) . ';'
+				. '--st-on-surface-variant:' . esc_attr( $text_muted_hex ) . ';'
+				. '--st-outline:' . esc_attr( $outline_hex ) . ';'
+				. '}';
+			wp_add_inline_style( 'apptook-ds-marketplace', $theme_css );
+		}
 		$discount_codes = array();
+		$discount_code_stock = array();
 		if ( isset( $opts['discount_code_rows'] ) && is_array( $opts['discount_code_rows'] ) ) {
 			foreach ( (array) $opts['discount_code_rows'] as $row ) {
 				if ( ! is_array( $row ) ) {
@@ -910,13 +946,16 @@ final class Apptook_DS_Public {
 				}
 				$code = isset( $row['code'] ) ? strtoupper( sanitize_text_field( (string) $row['code'] ) ) : '';
 				$amount = isset( $row['amount'] ) ? (float) $row['amount'] : 0;
-				if ( $code === '' || $amount <= 0 ) {
+				$qty = isset( $row['qty'] ) ? max( 0, (int) $row['qty'] ) : 0;
+				if ( $code === '' || $amount <= 0 || $qty <= 0 ) {
 					continue;
 				}
 				$discount_codes[ $code ] = $amount;
+				$discount_code_stock[ $code ] = $qty;
 			}
 		}
 		$discount_codes = array_slice( $discount_codes, 0, 10, true );
+		$discount_code_stock = array_slice( $discount_code_stock, 0, 10, true );
 
 		wp_localize_script(
 			'apptook-ds-frontend',
@@ -925,6 +964,7 @@ final class Apptook_DS_Public {
 				'ajaxUrl' => admin_url('admin-ajax.php'),
 				'nonce'   => wp_create_nonce('apptook_ds_public'),
 				'discountCodes' => $discount_codes,
+				'discountCodeStock' => $discount_code_stock,
 				'i18n'    => array(
 					'loginRequired' => __('กรุณาเข้าสู่ระบบก่อนซื้อ', 'apptook-digital-store'),
 					'uploading'     => __('กำลังอัปโหลด...', 'apptook-digital-store'),
@@ -1533,6 +1573,20 @@ final class Apptook_DS_Public {
 			}
 		}
 		return wp_registration_url();
+	}
+
+	private function hex_to_rgb( string $hex ): string {
+		$hex = ltrim( $hex, '#' );
+		if ( strlen( $hex ) === 3 ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( strlen( $hex ) !== 6 || ! ctype_xdigit( $hex ) ) {
+			return '129, 216, 208';
+		}
+		$r = hexdec( substr( $hex, 0, 2 ) );
+		$g = hexdec( substr( $hex, 2, 2 ) );
+		$b = hexdec( substr( $hex, 4, 2 ) );
+		return $r . ', ' . $g . ', ' . $b;
 	}
 
 	private function get_page_url_by_option( string $option_key ): string {

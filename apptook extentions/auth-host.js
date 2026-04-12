@@ -1,4 +1,9 @@
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJvMCawEeP2qCWTCxEUEZ3ygaV8f9aVJjXgJz8GcAVgoUKyKo9EiTmBRewOpecrYZE/exec";
+const DEFAULT_GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJvMCawEeP2qCWTCxEUEZ3ygaV8f9aVJjXgJz8GcAVgoUKyKo9EiTmBRewOpecrYZE/exec";
+
+function resolveGasWebAppUrl() {
+  const envUrl = String(process.env.APPTOOK_GAS_WEB_APP_URL || "").trim();
+  return envUrl || DEFAULT_GAS_WEB_APP_URL;
+}
 
 let logger = {
   info: (...args) => console.log(...args),
@@ -31,7 +36,8 @@ function logError(eventName, err) {
 }
 
 async function postToGas(payload) {
-  const response = await fetch(GAS_WEB_APP_URL, {
+  const gasWebAppUrl = resolveGasWebAppUrl();
+  const response = await fetch(gasWebAppUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

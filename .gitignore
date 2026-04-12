@@ -1,0 +1,18 @@
+# Dependencies
+**/node_modules/
+
+# Package/build artifacts
+*.vsix
+**/tmp_vsix_build_*/
+**/tmp_vsix_verify_*/
+
+# Archives
+*.rar
+*.zip
+*.7z
+
+# Extension runtime temp files
+apptook extentions/auth-bridge/.refresh-store.json
+
+# GAS staging temporary validation files
+apptook extentions/gas-staging/*check*.js

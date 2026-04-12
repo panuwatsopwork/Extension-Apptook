@@ -1,0 +1,14 @@
+**/.git/**
+**/.DS_Store
+**/Thumbs.db
+**/.env
+**/.env.*
+**/node_modules/**
+auth-bridge/**
+gas-staging/**
+tmp_vsix_*/**
+*.vsix
+mockup-apptook-*.*
+AGENTS.md
+scripts/**
+**/.refresh-store.json

@@ -1,0 +1,185 @@
+:root {
+  --bg: #071019;
+  --panel: #0d1824;
+  --line: rgba(86, 233, 255, 0.18);
+  --text: #eff9ff;
+  --muted: #8aa5b8;
+  --accent: #49dceb;
+  --accent-strong: #27c9da;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --radius: 16px;
+}
+
+.extension-cursor.page {
+  margin: 20px 20px 30px 0;
+  color: var(--text);
+}
+
+.extension-cursor .hero,
+.extension-cursor .panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(13, 24, 36, 0.98), rgba(10, 19, 29, 0.94));
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.extension-cursor .hero {
+  padding: 16px 18px;
+}
+
+.extension-cursor .hero-copy h1,
+.extension-cursor .panel h2 {
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.extension-cursor .panel-body {
+  padding: 16px;
+}
+
+.extension-cursor .grid {
+  display: grid;
+  gap: 10px;
+}
+
+.extension-cursor .grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.extension-cursor .grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.extension-cursor .grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.extension-cursor input,
+.extension-cursor select,
+.extension-cursor textarea,
+.extension-cursor button {
+  font: inherit;
+}
+
+.extension-cursor input,
+.extension-cursor select,
+.extension-cursor textarea {
+  width: 100%;
+  border: 1px solid rgba(112, 187, 209, 0.22);
+  border-radius: 10px;
+  background: rgba(16, 28, 40, 0.94);
+  color: var(--text);
+  padding: 11px;
+}
+
+.extension-cursor textarea {
+  min-height: 110px;
+}
+
+.extension-cursor .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.extension-cursor button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.extension-cursor .btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #031117;
+}
+
+.extension-cursor .btn-secondary {
+  background: rgba(25, 42, 57, 0.98);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.extension-cursor .btn-ghost {
+  background: rgba(73, 220, 235, 0.1);
+  color: #c9fbff;
+  border: 1px dashed rgba(73, 220, 235, 0.34);
+}
+
+.extension-cursor .status-bar {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(73, 220, 235, 0.2);
+  background: rgba(12, 25, 36, 0.88);
+}
+
+.extension-cursor .assign-rows {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.extension-cursor .assign-row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 140px;
+  gap: 8px;
+}
+
+.extension-cursor .assign-seq {
+  min-height: 40px;
+  border-radius: 10px;
+  background: rgba(73, 220, 235, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extension-cursor .response-box {
+  margin-bottom: 10px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(7, 14, 21, 0.92);
+  border: 1px solid rgba(113, 180, 202, 0.18);
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.extension-cursor .table-wrap {
+  overflow: auto;
+  border: 1px solid rgba(73, 220, 235, 0.14);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.extension-cursor table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.extension-cursor th,
+.extension-cursor td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(73, 220, 235, 0.09);
+  text-align: left;
+}
+
+.extension-cursor th {
+  background: rgba(12, 25, 36, 0.98);
+}
+
+@media (max-width: 900px) {
+  .extension-cursor .grid.two,
+  .extension-cursor .grid.three,
+  .extension-cursor .grid.four,
+  .extension-cursor .assign-row {
+    grid-template-columns: 1fr;
+  }
+}

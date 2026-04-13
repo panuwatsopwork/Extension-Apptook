@@ -200,7 +200,7 @@ final class Extension_Cursor_Admin {
 			return (string) EXT_CURSOR_GAS_WEB_APP_URL;
 		}
 
-		return 'https://script.google.com/macros/s/AKfycbyJvMCawEeP2qCWTCxEUEZ3ygaV8f9aVJjXgJz8GcAVgoUKyKo9EiTmBRewOpecrYZE/exec';
+		return 'https://script.google.com/macros/s/AKfycbwWO_JLPueD8wbIdng9i_GZ24809CP_nLPBMvu4OO9r1wKU579kTLkKO7Iz99BuKpGDAg/exec';
 	}
 
 	private function assert_permissions(): void {

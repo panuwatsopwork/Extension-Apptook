@@ -83,8 +83,13 @@ const DASHBOARD_TOKEN_HEADERS = [
 ];
 
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile("Admin")
-    .setTitle("APPTOOK Admin");
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      ok: true,
+      message: "APPTOOK GAS backend is running.",
+      service: "extension-cursor-backend"
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {

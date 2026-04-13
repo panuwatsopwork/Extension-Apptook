@@ -16,3 +16,11 @@ apptook extentions/auth-bridge/.refresh-store.json
 
 # GAS staging temporary validation files
 apptook extentions/gas-staging/*check*.js
+
+# Local IDE/FTP config (sensitive)
+.vscode/
+**/.vscode/
+.vscode/sftp.json
+.vscode/ftp-simple.json
+**/sftp.json
+**/ftp-simple.json

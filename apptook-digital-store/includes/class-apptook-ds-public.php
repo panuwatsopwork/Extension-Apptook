@@ -1249,9 +1249,9 @@ final class Apptook_DS_Public {
 				<section class="st-cats" id="apptook-st-cats" aria-label="<?php esc_attr_e( 'หมวดสินค้า', 'apptook-digital-store' ); ?>">
 					<div class="st-cats__inner">
 						<div class="st-cats__tabs" id="category-tabs" data-apptook-tabs>
-							<button type="button" class="category-btn category-btn--row is-active" data-category="all">
+							<button type="button" class="category-btn category-btn--stack is-active" data-category="all">
 								<span class="material-symbols-outlined ms-fill" aria-hidden="true">grid_view</span>
-								<span><?php esc_html_e( 'All Items', 'apptook-digital-store' ); ?></span>
+								<span class="st-cat-label"><?php esc_html_e( 'All', 'apptook-digital-store' ); ?></span>
 							</button>
 							<?php
 							foreach ( $terms as $term ) {

@@ -51,6 +51,18 @@ final class Extension_Cursor_API {
 
 		register_rest_route(
 			'extension-cursor/v1',
+			'/stock-keys/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array($this, 'delete_stock_key'),
+					'permission_callback' => array($this, 'permission_check'),
+				),
+			)
+		);
+
+		register_rest_route(
+			'extension-cursor/v1',
 			'/groups',
 			array(
 				array(
@@ -61,6 +73,18 @@ final class Extension_Cursor_API {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array($this, 'create_group'),
+					'permission_callback' => array($this, 'permission_check'),
+				),
+			)
+		);
+
+		register_rest_route(
+			'extension-cursor/v1',
+			'/groups/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array($this, 'delete_group'),
 					'permission_callback' => array($this, 'permission_check'),
 				),
 			)
@@ -211,7 +235,7 @@ final class Extension_Cursor_API {
 		$tables = Extension_Cursor_DB::table_names();
 
 		$rows = $wpdb->get_results(
-			"SELECT id, source_key, status, provider, expire_at, max_devices, token_capacity, note, created_at
+			"SELECT id, source_key, status, provider, expire_at, max_devices, token_capacity, created_at
 			 FROM {$tables['stock_keys']}
 			 ORDER BY id DESC
 			 LIMIT 500",
@@ -219,6 +243,22 @@ final class Extension_Cursor_API {
 		);
 
 		return new WP_REST_Response(array('ok' => true, 'items' => $rows), 200);
+	}
+
+	public function delete_stock_key(WP_REST_Request $request): WP_REST_Response {
+		global $wpdb;
+		$tables = Extension_Cursor_DB::table_names();
+		$id = (int) $request->get_param('id');
+		if ($id <= 0) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'Invalid stock key ID.'), 400);
+		}
+
+		$deleted = $wpdb->delete($tables['stock_keys'], array('id' => $id), array('%d'));
+		if (! $deleted) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'Stock key not found or could not be deleted.'), 404);
+		}
+
+		return new WP_REST_Response(array('ok' => true, 'message' => 'Stock key deleted successfully.'), 200);
 	}
 
 	public function import_stock_keys(WP_REST_Request $request): WP_REST_Response {
@@ -284,13 +324,30 @@ final class Extension_Cursor_API {
 		$tables = Extension_Cursor_DB::table_names();
 
 		$rows = $wpdb->get_results(
-			"SELECT id, group_code, name, mode, status, note, created_at
+			"SELECT id, group_code, name, mode, status, created_at
 			 FROM {$tables['groups']}
 			 ORDER BY id DESC",
 			ARRAY_A
 		);
 
 		return new WP_REST_Response(array('ok' => true, 'items' => $rows), 200);
+	}
+
+	public function delete_group(WP_REST_Request $request): WP_REST_Response {
+		global $wpdb;
+		$tables = Extension_Cursor_DB::table_names();
+		$id = (int) $request->get_param('id');
+		if ($id <= 0) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'Invalid group ID.'), 400);
+		}
+
+		$wpdb->delete($tables['group_keys'], array('group_id' => $id), array('%d'));
+		$deleted = $wpdb->delete($tables['groups'], array('id' => $id), array('%d'));
+		if (! $deleted) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'Group not found or could not be deleted.'), 404);
+		}
+
+		return new WP_REST_Response(array('ok' => true, 'message' => 'Group deleted successfully.'), 200);
 	}
 
 	public function create_group(WP_REST_Request $request): WP_REST_Response {
@@ -416,8 +473,9 @@ final class Extension_Cursor_API {
 		}
 
 		$group_id      = (int) ($key_row['group_id'] ?? 0);
-		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, 95.0)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 95%).'), 403);
+		$threshold_percent = isset($data['thresholdPercent']) ? max(1, min(100, (float) $data['thresholdPercent'])) : 95.0;
+		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted.'), 403);
 		}
 
 		$group_key_row = $this->get_first_group_key($group_id);
@@ -472,8 +530,9 @@ final class Extension_Cursor_API {
 		}
 
 		$group_id       = (int) ($key_row['group_id'] ?? 0);
-		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, 95.0)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 95%).'), 403);
+		$threshold_percent = isset($data['thresholdPercent']) ? max(1, min(100, (float) $data['thresholdPercent'])) : 95.0;
+		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted.'), 403);
 		}
 		$current_key_id = (int) ($key_row['current_group_key_id'] ?? 0);
 

@@ -34,11 +34,7 @@
     localStockKeys: [],
     localGroups: [],
     localApptookKeys: [],
-    runtimeMonitor: null,
-    runtimeSimTimer: null,
-    runtimeSimRefreshTimer: null,
-    runtimeSimBusy: false,
-    runtimeSimAwaitRefresh: false
+    runtimeMonitor: null
   };
 
   const $ = (id) => document.getElementById(id);
@@ -108,33 +104,11 @@
   const localRefreshApptookButton = $('localRefreshApptookButton');
   const localApptookKeysTable = $('localApptookKeysTable');
 
-  const rtApptookKey = $('rtApptookKey');
-  const rtDeviceId = $('rtDeviceId');
-  const rtReason = $('rtReason');
-  const rtRawUsage = $('rtRawUsage');
-  const rtDisplayUsage = $('rtDisplayUsage');
-  const rtLoginButton = $('rtLoginButton');
-  const rtLoopNextButton = $('rtLoopNextButton');
-  const rtDashboardSyncButton = $('rtDashboardSyncButton');
-
   const tabMainButton = $('tabMainButton');
   const tabRuntimeMonitorButton = $('tabRuntimeMonitorButton');
   const tabMainContent = $('tabMainContent');
   const tabRuntimeMonitorContent = $('tabRuntimeMonitorContent');
 
-  const rmApptookKey = $('rmApptookKey');
-  const rmLoadButton = $('rmLoadButton');
-  const rmRefreshButton = $('rmRefreshButton');
-  const rmUsagePercent = $('rmUsagePercent');
-  const rmCurrentSourceKey = $('rmCurrentSourceKey');
-  const rmTotalCapacity = $('rmTotalCapacity');
-  const rmLicensesTable = $('rmLicensesTable');
-  const rmSimThreshold = $('rmSimThreshold');
-  const rmSimIntervalMs = $('rmSimIntervalMs');
-  const rmSimTargetSeconds = $('rmSimTargetSeconds');
-  const rmSimStartButton = $('rmSimStartButton');
-  const rmSimStopButton = $('rmSimStopButton');
-  const rmSimResetButton = $('rmSimResetButton');
 
   function setStatus(message) {
     if (statusText) {
@@ -612,6 +586,124 @@
     });
   }
 
+  function renderLocalStockTable(items) {
+    if (!localStockTable) return;
+    if (!Array.isArray(items) || !items.length) {
+      localStockTable.innerHTML = '<div class="empty">No local stock keys loaded.</div>';
+      return;
+    }
+
+    const rows = items.map((item) => {
+      const id = Number(item.id || 0);
+      return `
+        <tr data-stock-key-id="${id}">
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(item.source_key || '')}</td>
+          <td>${escapeHtml(item.status || '')}</td>
+          <td>${escapeHtml(item.provider || '')}</td>
+          <td>${escapeHtml(item.expire_at || '')}</td>
+          <td>${escapeHtml(item.max_devices || '')}</td>
+          <td>${escapeHtml(item.token_capacity || '')}</td>
+          <td>
+            <button class="btn-secondary local-stock-delete" data-id="${id}" type="button">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    localStockTable.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Source Key</th>
+            <th>Status</th>
+            <th>Provider</th>
+            <th>Expire</th>
+            <th>Max Devices</th>
+            <th>Token Capacity</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    localStockTable.querySelectorAll('.local-stock-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        if (!window.confirm('Delete this stock key?')) return;
+        try {
+          const result = await callLocalRest(`/stock-keys/${id}`, 'DELETE');
+          setResponse(result);
+          setStatus(result.message || 'Stock key deleted.');
+          await refreshLocalData(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+  }
+
+  function renderLocalGroupsTable(items) {
+    if (!localGroupsTable) return;
+    if (!Array.isArray(items) || !items.length) {
+      localGroupsTable.innerHTML = '<div class="empty">No groups loaded.</div>';
+      return;
+    }
+
+    const rows = items.map((item) => {
+      const id = Number(item.id || 0);
+      return `
+        <tr data-group-id="${id}">
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(item.group_code || '')}</td>
+          <td>${escapeHtml(item.name || '')}</td>
+          <td>${escapeHtml(item.mode || '')}</td>
+          <td>${escapeHtml(item.status || '')}</td>
+          <td>
+            <button class="btn-secondary local-group-delete" data-id="${id}" type="button">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    localGroupsTable.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Group Code</th>
+            <th>Name</th>
+            <th>Mode</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    localGroupsTable.querySelectorAll('.local-group-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        if (!window.confirm('Delete this group and its keys?')) return;
+        try {
+          const result = await callLocalRest(`/groups/${id}`, 'DELETE');
+          setResponse(result);
+          setStatus(result.message || 'Group deleted.');
+          await refreshLocalData(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+  }
+
   async function refreshLocalData(showSuccess = true) {
     if (!localStockTable && !localGroupsTable) {
       return;
@@ -629,8 +721,8 @@
       state.localStockKeys = Array.isArray(stockRes.items) ? stockRes.items : [];
       state.localGroups = Array.isArray(groupsRes.items) ? groupsRes.items : [];
 
-      renderTable(localStockTable, normalizeRowsFromObjects(state.localStockKeys));
-      renderTable(localGroupsTable, normalizeRowsFromObjects(state.localGroups));
+      renderLocalStockTable(state.localStockKeys);
+      renderLocalGroupsTable(state.localGroups);
       hydrateMapGroupOptions();
       hydrateApptookGroupOptions();
 
@@ -966,9 +1058,7 @@
       const result = await callLocalRest(query, 'GET');
       state.runtimeMonitor = result;
       setResponse(result);
-
       renderRuntimeMonitorData(result);
-
       if (showSuccess) setStatus(`Runtime monitor loaded for ${apptookKeyValue}.`);
       return result;
     } catch (err) {
@@ -1071,9 +1161,10 @@
 
         const syncRes = await callLocalRest('/runtime/dashboard-sync', 'POST', {
           apptookKey: apptookKeyValue,
-          deviceId: String((rtDeviceId && rtDeviceId.value) || 'sim-device').trim() || 'sim-device',
+          deviceId: 'sim-device',
           rawUsage: nextRaw,
-          displayUsage: nextRaw
+          displayUsage: nextRaw,
+          thresholdPercent
         });
 
         if (!syncRes || syncRes.ok === false) {
@@ -1091,7 +1182,7 @@
           const loopRes = await callLocalRest('/runtime/loop-next', 'POST', {
             apptookKey: apptookKeyValue,
             reason: `auto_switch_threshold_${thresholdPercent}`,
-            deviceId: String((rtDeviceId && rtDeviceId.value) || 'sim-device').trim() || 'sim-device'
+            deviceId: 'sim-device'
           });
 
           state.runtimeSimCtx = null;
@@ -1101,7 +1192,7 @@
 
           if (loopRes && loopRes.ok === false && String(loopRes.message || '').includes('exhausted')) {
             stopRuntimeSimulation(true);
-            setStatus('Simulation stopped: APTOOK usage reached 100% (all licenses >= 95%).');
+            setStatus('Simulation stopped: APTOOK usage reached the switch threshold across all licenses.');
             return;
           }
         }
@@ -1197,56 +1288,6 @@
     }
   }
 
-  if (rtLoginButton) {
-    rtLoginButton.addEventListener('click', async () => {
-      const apptookKeyValue = String((rtApptookKey && rtApptookKey.value) || '').trim();
-      if (!apptookKeyValue) {
-        setStatus('Please provide APTOOK Key for runtime test.');
-        return;
-      }
-
-      await callRuntime('/runtime/login', {
-        apptookKey: apptookKeyValue,
-        deviceId: String((rtDeviceId && rtDeviceId.value) || '').trim()
-      }, rtLoginButton, 'Testing login...');
-    });
-  }
-
-  if (rtLoopNextButton) {
-    rtLoopNextButton.addEventListener('click', async () => {
-      const apptookKeyValue = String((rtApptookKey && rtApptookKey.value) || '').trim();
-      if (!apptookKeyValue) {
-        setStatus('Please provide APTOOK Key for runtime test.');
-        return;
-      }
-
-      await callRuntime('/runtime/loop-next', {
-        apptookKey: apptookKeyValue,
-        reason: String((rtReason && rtReason.value) || 'manual_switch').trim() || 'manual_switch',
-        deviceId: String((rtDeviceId && rtDeviceId.value) || '').trim()
-      }, rtLoopNextButton, 'Testing loop-next...');
-    });
-  }
-
-  if (rtDashboardSyncButton) {
-    rtDashboardSyncButton.addEventListener('click', async () => {
-      const apptookKeyValue = String((rtApptookKey && rtApptookKey.value) || '').trim();
-      if (!apptookKeyValue) {
-        setStatus('Please provide APTOOK Key for runtime test.');
-        return;
-      }
-
-      const rawUsageValue = String((rtRawUsage && rtRawUsage.value) || '').trim();
-      const displayUsageValue = String((rtDisplayUsage && rtDisplayUsage.value) || '').trim();
-
-      await callRuntime('/runtime/dashboard-sync', {
-        apptookKey: apptookKeyValue,
-        deviceId: String((rtDeviceId && rtDeviceId.value) || '').trim(),
-        rawUsage: rawUsageValue === '' ? null : Number(rawUsageValue),
-        displayUsage: displayUsageValue === '' ? null : Number(displayUsageValue)
-      }, rtDashboardSyncButton, 'Testing dashboard-sync...');
-    });
-  }
 
   if (localCreateApptookButton) {
     localCreateApptookButton.addEventListener('click', async () => {

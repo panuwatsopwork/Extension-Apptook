@@ -123,12 +123,6 @@ final class Extension_Cursor_Admin {
 										<input id="localTokenCapacity" type="number" min="1" step="1" value="100">
 									</div>
 								</div>
-								<div class="grid">
-									<div>
-										<label for="localNote">Note</label>
-										<input id="localNote" type="text" placeholder="Optional note">
-									</div>
-								</div>
 								<div class="actions">
 									<button id="localImportButton" class="btn-primary" type="button">Import to WP DB</button>
 									<button id="localRefreshButton" class="btn-secondary" type="button">Refresh Local Data</button>
@@ -216,44 +210,6 @@ final class Extension_Cursor_Admin {
 									<button id="localRefreshApptookButton" class="btn-secondary" type="button">Refresh APTOOK Keys</button>
 								</div>
 								<div id="localApptookKeysTable" class="table-wrap"><div class="empty">No APTOOK keys loaded.</div></div>
-							</div>
-						</section>
-
-						<section class="panel">
-							<div class="panel-head">
-								<h2>Runtime Test Panel</h2>
-								<p>Test runtime endpoints directly against WP backend before building VSIX.</p>
-							</div>
-							<div class="panel-body">
-								<div class="grid three">
-									<div>
-										<label for="rtApptookKey">APTOOK Key</label>
-										<input id="rtApptookKey" type="text" placeholder="e.g. apptook_xxxxx" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" aria-autocomplete="none" name="ec_runtime_apptook_key" readonly onfocus="this.removeAttribute('readonly');" onmousedown="this.removeAttribute('readonly');">
-									</div>
-									<div>
-										<label for="rtDeviceId">Device ID</label>
-										<input id="rtDeviceId" type="text" placeholder="dev-001">
-									</div>
-									<div>
-										<label for="rtReason">Loop Reason</label>
-										<input id="rtReason" type="text" value="manual_switch">
-									</div>
-								</div>
-								<div class="grid two">
-									<div>
-										<label for="rtRawUsage">Raw Usage</label>
-										<input id="rtRawUsage" type="number" step="0.000001" placeholder="Optional">
-									</div>
-									<div>
-										<label for="rtDisplayUsage">Display Usage</label>
-										<input id="rtDisplayUsage" type="number" step="0.000001" placeholder="Optional">
-									</div>
-								</div>
-								<div class="actions">
-									<button id="rtLoginButton" class="btn-primary" type="button">Test runtime/login</button>
-									<button id="rtLoopNextButton" class="btn-secondary" type="button">Test runtime/loop-next</button>
-									<button id="rtDashboardSyncButton" class="btn-ghost" type="button">Test runtime/dashboard-sync</button>
-								</div>
 							</div>
 						</section>
 

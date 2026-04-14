@@ -3804,17 +3804,17 @@ body.admin-bar .apptook-stitch .apptook-ds-pd-side {
 	}
 
 	.apptook-stitch .st-cats__inner {
-		padding: 0.8rem 0.75rem;
+		padding: 0.55rem 0.45rem;
 	}
 
 	.apptook-stitch .st-cats__tabs {
-		gap: 0.5rem;
+		gap: 0.25rem;
 	}
 
 	.apptook-stitch .category-btn--row,
 	.apptook-stitch .category-btn--stack {
-		padding: 0.55rem 0.65rem;
-		border-radius: 0.8rem;
+		padding: 0.35rem 0.25rem;
+		border-radius: 0.72rem;
 	}
 
 	.apptook-stitch .st-grid-section {

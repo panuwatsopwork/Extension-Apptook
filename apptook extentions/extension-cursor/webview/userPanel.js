@@ -13,6 +13,7 @@
     const DASHBOARD_REFRESH_INTERVAL_MS = 10000;
     const BACKGROUND_REFRESH_MIN_INTERVAL_MS = 2500;
     const INITIAL_HOST_RUNTIME_WAIT_MS = 450;
+    const POST_LOGIN_LOADING_TIMEOUT_MS = 4000;
     const SOURCE_ROTATION_PRESWITCH_BUFFER_RAW = 1;
     const SHOW_RESUME_TRANSITION_OVERLAY = false;
 
@@ -24,6 +25,7 @@
     const loading = document.getElementById('loading');
     const noticeArea = document.getElementById('noticeArea');
     const noticeContent = document.getElementById('noticeContent');
+    const restartApiWorkerBtn = document.getElementById('restartApiWorkerBtn');
     
     const activationCodeInput = document.getElementById('activationCode');
     let passwordInput = null;
@@ -118,6 +120,7 @@
     const copyActivationCodeBtn = document.getElementById('copyActivationCodeBtn');
     const startApiWorkerBtn = document.getElementById('startApiWorkerBtn');
 
+
     let isCursorActive = false;
     let hostWorkerHealthKnown = false;
     let hostWorkerHealthy = false;
@@ -149,12 +152,15 @@
     let initialHostRuntimeWaiters = [];
     let resumeTransitionOverlay = null;
     let resumeTransitionMessage = null;
+    let postLoginLoadingTimer = null;
     let premiumDashboardRoot = null;
     let premiumHeroLogoFrame = null;
     let premiumHeroLogo = null;
     let premiumStatusTitle = null;
     let premiumStatusNote = null;
     let premiumStatusPill = null;
+    let premiumActivationCodeValue = null;
+    let premiumActivationCodeNote = null;
     let premiumLicenseValue = null;
     let premiumLicenseNote = null;
     let premiumExpireValue = null;
@@ -213,10 +219,10 @@
     function applyCompactStatusLayout() {
         setInfoLabelText(userId, 'License key:');
         setSectionVisibility(userId, true);
-        setSectionVisibility(activationCodeDisplay, false);
-        setSectionVisibility(vipStatus, false);
-        setSectionVisibility(expireTime, false);
-        setSectionVisibility(dayScoreItem, false);
+        setSectionVisibility(activationCodeDisplay, true);
+        setSectionVisibility(vipStatus, true);
+        setSectionVisibility(expireTime, true);
+        setSectionVisibility(dayScoreItem, true);
 
         if (refreshBtn) {
             refreshBtn.style.display = 'none';
@@ -229,6 +235,12 @@
         if (startApiWorkerBtn) {
             startApiWorkerBtn.style.display = 'none';
         }
+
+        if (restartApiWorkerBtn) {
+            restartApiWorkerBtn.style.display = 'none';
+        }
+
+
     }
 
     function hideFieldContainer(input) {
@@ -594,6 +606,12 @@
             </section>
 
             <section class="premium-card premium-license-card">
+                <div class="premium-card-label">Activation Code</div>
+                <div id="premiumActivationCodeValue" class="premium-license-value">-</div>
+                <div id="premiumActivationCodeNote" class="premium-license-note">Masked activation code</div>
+            </section>
+
+            <section class="premium-card premium-license-card">
                 <div class="premium-card-label">License Key</div>
                 <div id="premiumLicenseValue" class="premium-license-value">-</div>
                 <div id="premiumLicenseNote" class="premium-license-note">Customer access key</div>
@@ -612,7 +630,9 @@
                 </article>
             </section>
 
-            <section class="premium-card premium-settings-card">
+            <button id="restartApiWorkerBtn" type="button" class="premium-settings-button">Restart</button>
+
+            <section class="premium-settings-card">
                 <div class="premium-section-head">
                     <h3>Support Key</h3>
                     <small>Settings</small>
@@ -652,9 +672,31 @@
         premiumDashboardRoot = premiumRoot;
         premiumHeroLogoFrame = premiumRoot.querySelector('.premium-logo-frame');
         premiumHeroLogo = premiumRoot.querySelector('.premium-logo');
+        if (premiumHeroLogo) {
+            const logoUrl = document.documentElement.getAttribute('data-apptook-logo-webview-url')
+                || document.body.getAttribute('data-apptook-logo-webview-url')
+                || document.documentElement.getAttribute('data-apptook-logo-url')
+                || document.body.getAttribute('data-apptook-logo-url')
+                || '';
+            if (logoUrl) {
+                premiumHeroLogo.src = logoUrl;
+                premiumHeroLogo.addEventListener('load', () => {
+                    if (premiumHeroLogoFrame) {
+                        premiumHeroLogoFrame.classList.add('loaded');
+                    }
+                });
+                premiumHeroLogo.addEventListener('error', () => {
+                    if (premiumHeroLogoFrame) {
+                        premiumHeroLogoFrame.classList.remove('loaded');
+                    }
+                });
+            }
+        }
         premiumStatusTitle = premiumRoot.querySelector('#premiumStatusTitle');
         premiumStatusNote = premiumRoot.querySelector('#premiumStatusNote');
         premiumStatusPill = premiumRoot.querySelector('#premiumStatusPill');
+        premiumActivationCodeValue = premiumRoot.querySelector('#premiumActivationCodeValue');
+        premiumActivationCodeNote = premiumRoot.querySelector('#premiumActivationCodeNote');
         premiumLicenseValue = premiumRoot.querySelector('#premiumLicenseValue');
         premiumLicenseNote = premiumRoot.querySelector('#premiumLicenseNote');
         premiumExpireValue = premiumRoot.querySelector('#premiumExpireValue');
@@ -775,6 +817,15 @@
             premiumStatusNote.textContent = statusState.note;
         }
 
+        if (premiumActivationCodeValue) {
+            const activationCode = String(user && user.activationCode || gasSession && gasSession.activationCode || '').trim();
+            premiumActivationCodeValue.textContent = activationCode ? maskActivationCode(activationCode) : '-';
+        }
+
+        if (premiumActivationCodeNote) {
+            premiumActivationCodeNote.textContent = 'Masked activation code';
+        }
+
         if (premiumLicenseValue) {
             premiumLicenseValue.textContent = licenseKey;
         }
@@ -801,12 +852,48 @@
 
         if (premiumUsageNote) {
             premiumUsageNote.textContent = usageLimit > 0
-                ? `Live count from Today's chats · limit ${formatCompactMetricNumber(usageLimit)}`
+                ? `Live count from Today\'s chats · limit ${formatCompactMetricNumber(usageLimit)}`
                 : 'Live count from Today\'s chats';
         }
 
         if (premiumUsageNote) {
             premiumUsageNote.textContent = 'Package usage from all assigned source keys';
+        }
+
+        syncPremiumEmbeddedSections();
+    }
+
+    function updatePremiumLiveState(runtime) {
+        const data = runtime && typeof runtime === 'object' ? runtime : {};
+        ensurePremiumDashboardLayout();
+
+        if (premiumStatusTitle) {
+            premiumStatusTitle.textContent = data.isActive ? 'Ready to use' : 'Access inactive';
+        }
+
+        if (premiumStatusNote) {
+            premiumStatusNote.textContent = data.isActive ? 'Connected source key is active and working' : 'Waiting for activation';
+        }
+
+        if (premiumLicenseValue) {
+            premiumLicenseValue.textContent = String(data.currentKeyCode || data.currentSourceKey || '-');
+        }
+
+        if (premiumLicenseNote) {
+            premiumLicenseNote.textContent = data.currentKeyCode ? 'Current active key' : 'No active key';
+        }
+
+        if (premiumUsageValue) {
+            const pct = Number.isFinite(Number(data.usagePercent)) ? Number(data.usagePercent) : 0;
+            premiumUsageValue.textContent = `${pct.toFixed(2)}%`;
+        }
+
+        if (premiumUsageNote) {
+            premiumUsageNote.textContent = `Raw ${Math.floor(toFiniteNumber(data.currentRawUsage, 0))} / ${Math.floor(toFiniteNumber(data.tokenCapacity, 1))}`;
+        }
+
+        if (premiumExpireValue && gasSession && gasSession.expireAt) {
+            premiumExpireValue.textContent = formatPremiumDate(gasSession.expireAt);
         }
 
         syncPremiumEmbeddedSections();
@@ -2315,11 +2402,13 @@
                 const result = await loginWithGas(apptookKey);
                 if (!result || !result.ok) {
                     testLoginBtn.disabled = false;
-                    showMessage(testLoginMessage, (result && result.message) || 'Login failed', 'error');
+                    showMessage(testLoginMessage, `login failed: ${(result && result.message) || 'Login failed'}`, 'error');
                     return;
                 }
 
-                const licenseCode = result.data && result.data.licenseCode ? String(result.data.licenseCode) : '';
+                const licenseCode = result.data && (result.data.licenseCode || result.data.currentSourceKey || result.data.currentKeyCode)
+                ? String(result.data.licenseCode || result.data.currentSourceKey || result.data.currentKeyCode)
+                : '';
                 if (!licenseCode) {
                     testLoginBtn.disabled = false;
                     showMessage(testLoginMessage, 'No licenseCode returned from server', 'error');
@@ -2328,7 +2417,7 @@
 
                 if (!startExtensionLoginWithSession(result.data || null, 'manual')) {
                     testLoginBtn.disabled = false;
-                    showMessage(testLoginMessage, 'Cannot start extension login flow', 'error');
+                    showMessage(testLoginMessage, 'login flow rejected: missing session data from backend', 'error');
                     return;
                 }
             } catch (err) {
@@ -2344,6 +2433,8 @@
                 submitLogin();
             }
         });
+
+
     }
 
     function initTestLoginGate(statusText = '') {
@@ -2368,7 +2459,7 @@
         markWorkerRecoveryFinished();
         showLoading(false);
         showLoginForm();
-        initTestLoginGate(statusText);
+        initTestLoginGate(statusText || 'Session ended. Please log in again.');
     }
 
     // Modal-related elements
@@ -2405,6 +2496,9 @@
     copyUserIdBtn.addEventListener('click', handleCopyUserId);
     copyActivationCodeBtn.addEventListener('click', handleCopyActivationCode);
     startApiWorkerBtn.addEventListener('click', handleStartApiWorker);
+    if (restartApiWorkerBtn) {
+        restartApiWorkerBtn.addEventListener('click', handleStartApiWorker);
+    }
     testProxyBtn.addEventListener('click', handleTestProxy);
     saveProxyBtn.addEventListener('click', handleSaveProxy);
     saveNetworkBtn.addEventListener('click', handleSaveNetwork);
@@ -2472,7 +2566,7 @@
 
     function startExtensionLoginWithSession(authData, source = 'manual') {
         const sourceData = authData && typeof authData === 'object' ? authData : {};
-        const licenseCode = String(sourceData.licenseCode || sourceData.currentKeyCode || '').trim();
+        const licenseCode = String(sourceData.licenseCode || sourceData.currentSourceKey || sourceData.currentKeyCode || '').trim();
         if (!licenseCode) {
             return false;
         }
@@ -2492,6 +2586,15 @@
         unlockMainUi();
         showUserStatus();
         showLoading(true);
+        clearPostLoginLoadingTimer();
+        postLoginLoadingTimer = window.setTimeout(() => {
+            if (showLoading) {
+                showLoading(false);
+            }
+            if (!latestUserSnapshot) {
+                showMessage(statusMessage, 'post-login timeout: waiting for userStatus/dashboardSync', 'error');
+            }
+        }, POST_LOGIN_LOADING_TIMEOUT_MS);
         sendReadyMessage();
         const sessionPayload = buildHostSessionPayload(sourceData);
         vscode.postMessage({
@@ -2577,7 +2680,7 @@
         clearAuthSessionState();
         showLoading(false);
         showLoginForm();
-        initTestLoginGate(errorMessage);
+        initTestLoginGate(`Session invalidated during login/sync: ${errorMessage}`);
     }
 
     // Handle login
@@ -2611,11 +2714,13 @@
                 });
                 showLoading(false);
                 loginBtn.disabled = false;
-                showMessage(loginMessage, getActionableErrorMessage(result.message, 'Login failed'), 'error');
+                showMessage(loginMessage, `login failed: ${getActionableErrorMessage(result.message, 'Login failed')}`, 'error');
                 return;
             }
 
-            const licenseCode = result.data && result.data.licenseCode ? String(result.data.licenseCode) : '';
+            const licenseCode = result.data && (result.data.licenseCode || result.data.currentSourceKey || result.data.currentKeyCode)
+                ? String(result.data.licenseCode || result.data.currentSourceKey || result.data.currentKeyCode)
+                : '';
             if (!licenseCode) {
                 showLoading(false);
                 loginBtn.disabled = false;
@@ -2699,6 +2804,16 @@
             session: sessionPayload,
             latestUser: latestUserSnapshot || null
         });
+
+        if (!isCursorActive) {
+            setTimeout(() => {
+                vscode.postMessage({
+                    type: 'startApiWorker',
+                    session: buildHostSessionPayload(),
+                    latestUser: latestUserSnapshot || null
+                });
+            }, 150);
+        }
     }
 
     // Handle start api-worker
@@ -2716,6 +2831,8 @@
             latestUser: latestUserSnapshot || null
         });
     }
+
+
 
     // Handle account switching
     function handleGainNew() {
@@ -2912,8 +3029,19 @@
     }
 
     // Show loading state
+    function clearPostLoginLoadingTimer() {
+        if (postLoginLoadingTimer) {
+            clearTimeout(postLoginLoadingTimer);
+            postLoginLoadingTimer = null;
+        }
+    }
+
     function showLoading(show = true) {
         loading.style.display = show ? 'flex' : 'none';
+
+        if (!show) {
+            clearPostLoginLoadingTimer();
+        }
     }
 
     // Show login form
@@ -3173,6 +3301,7 @@
             case 'hostLoggedOut':
                 handleHostLoggedOut(message);
                 break;
+
         }
     });
 
@@ -3238,12 +3367,22 @@
                     loopRotationState.awaitingLogin = false;
                     loopRotationState.pendingKeyCode = '';
                 }
+                clearPostLoginLoadingTimer();
                 showLoading(false);
+                if (!latestUserSnapshot) {
+                    showMessage(statusMessage, 'login success: waiting for userStatus/dashboardSync', 'info');
+                }
                 showMessage(loginMessage, message.message, 'success');
                 loginBtn.disabled = false;
                 activationCodeInput.value = '';
                 if (autoRunState.active) {
                     autoRunState.phase = 'awaiting_status';
+                }
+
+                if (result.autoActivate && result.data) {
+                    beginAutoRunSequence('manual_activate', licenseCode);
+                    autoRunState.phase = 'activating';
+                    handleActivate();
                 }
                 if (loopRotationState.active && !statusRefreshInFlight) {
                     handleRefresh('loop_rotation_post_login');
@@ -3256,7 +3395,7 @@
                     loopRotationState.awaitingLogin = false;
                     loopRotationState.pendingKeyCode = '';
                     showLoading(false);
-                    showMessage(loginMessage, 'Activation code is invalid', 'error');
+                    showMessage(loginMessage, `login failed during loop rotation: ${getActionableErrorMessage(message.message, 'Loop key activation failed')}`, 'error');
                     loginBtn.disabled = false;
                     emitTelemetry('loop_rotation_login_failed', {
                         reason: getActionableErrorMessage(message.message, 'Loop key activation failed')
@@ -3265,14 +3404,14 @@
                     break;
                 }
                 showLoading(false);
-                showMessage(loginMessage, 'Activation code is invalid', 'error');
+                showMessage(loginMessage, `login failed: ${getActionableErrorMessage(message.message, 'Activation code is invalid')}`, 'error');
                 loginBtn.disabled = false;
                 emitTelemetry('login_failed', {
                     source: autoRunState.active ? 'auto_run' : 'manual_or_resume',
                     reason: getActionableErrorMessage(message.message, 'Activation code is invalid')
                 });
                 if (gasSession && gasSession.currentKeyCode) {
-                    handlePersistedSessionInvalid(message.message || 'Activation code is invalid');
+                    handlePersistedSessionInvalid(`loginStatus error: ${message.message || 'Activation code is invalid'}`);
                     break;
                 }
                 if (autoRunState.active) {
@@ -3305,6 +3444,7 @@
         }
 
         latestUserSnapshot = message.user || null;
+        clearPostLoginLoadingTimer();
         updateUserInfo(message.user);
         syncLoopSessionWithUser(message.user);
         syncDashboardRefreshTimer();
@@ -3358,7 +3498,7 @@
                 if (isBackgroundWorkerRecoverySource()) {
                     hideMessage(statusMessage);
                 } else {
-                    showMessage(statusMessage, getActionableErrorMessage(message.message, 'Activate failed'), 'error');
+                    showMessage(statusMessage, `activate failed: ${getActionableErrorMessage(message.message, 'Activate failed')}`, 'error');
                 }
                 hideResumeTransition();
                 if (activeBtn.dataset.state === 'active') {
@@ -3368,7 +3508,7 @@
                     if (isBackgroundWorkerRecoverySource()) {
                         resetAutoRunState();
                     } else {
-                        failAutoRunSequence(getActionableErrorMessage(message.message, 'Activate failed'));
+                        failAutoRunSequence(`activate failed: ${getActionableErrorMessage(message.message, 'Activate failed')}`);
                     }
                 }
                 break;
@@ -3481,7 +3621,7 @@
                     hideResumeTransition();
                 }
                 if (!isBackgroundWorkerRecoverySource() && !backgroundRefresh) {
-                    showMessage(statusMessage, getActionableErrorMessage(message.message, 'Refresh failed'), 'error');
+                    showMessage(statusMessage, `sync failed: ${getActionableErrorMessage(message.message, 'Refresh failed')}`, 'error');
                 } else {
                     hideMessage(statusMessage);
                 }
@@ -3489,7 +3629,7 @@
                     if (isBackgroundWorkerRecoverySource()) {
                         resetAutoRunState();
                     } else {
-                        failAutoRunSequence(getActionableErrorMessage(message.message, 'Refresh failed'));
+                        failAutoRunSequence(`refresh failed: ${getActionableErrorMessage(message.message, 'Refresh failed')}`);
                     }
                 }
                 break;
@@ -3667,7 +3807,8 @@
         resolver({
             ok: Boolean(message.ok),
             message: message.message || '',
-            data: message.data || null
+            data: message.data || null,
+            autoActivate: Boolean(message.autoActivate)
         });
     }
 
@@ -3742,6 +3883,11 @@
             return;
         }
 
+        if (toggleApiWorkerTerminalBtn) {
+            toggleApiWorkerTerminalBtn.disabled = false;
+            toggleApiWorkerTerminalBtn.textContent = message.apiWorkerTerminalVisible ? 'Hide Terminal' : 'Show Terminal';
+        }
+
         markInitialHostRuntimeStateReceived();
 
         const hostInstallMarker = String(message.installMarker || '').trim();
@@ -3790,20 +3936,45 @@
             markWorkerRecoveryFinished();
         }
 
-        if (message.session && typeof message.session === 'object') {
-            setLoopSessionFromAuthData(message.session, {
+        const sessionData = message.session && typeof message.session === 'object' ? message.session : null;
+        if (sessionData) {
+            setLoopSessionFromAuthData(sessionData, {
                 preserveLoopState: true,
                 preserveDashboardState: true
             });
         }
 
-        if (typeof message.isActive === 'boolean') {
-            isCursorActive = Boolean(message.isActive);
-            updateActivateButtonText();
+        const activeFromState = typeof message.isActive === 'boolean'
+            ? Boolean(message.isActive)
+            : Boolean(message.status === 'active');
+        isCursorActive = activeFromState;
+
+        if (activeBtn) {
+            activeBtn.dataset.state = isCursorActive ? 'active' : 'inactive';
+            activeBtn.style.display = 'block';
+            activeBtn.disabled = false;
+            activeBtn.textContent = isCursorActive ? 'Deactivate' : 'Activate';
         }
+        updateActivateButtonText();
+
+        const sessionKey = String(message.currentKeyCode || message.currentSourceKey || (sessionData && (sessionData.currentKeyCode || sessionData.licenseCode)) || '').trim();
+        const rawUsage = Math.max(0, toFiniteNumber(message.currentRawUsage, sessionData && sessionData.currentSourceConsumedRaw, 0));
+        const capacity = Math.max(1, toFiniteNumber(message.tokenCapacity, sessionData && (sessionData.currentSourceCapacity || sessionData.totalAssignedSourceCapacity), 100));
+        const usagePercent = Number.isFinite(Number(message.usagePercent))
+            ? Number(message.usagePercent)
+            : Number(((rawUsage / capacity) * 100).toFixed(2));
+
+        updatePremiumLiveState({
+            currentKeyCode: sessionKey,
+            usagePercent,
+            currentRawUsage: rawUsage,
+            tokenCapacity: capacity,
+            isActive: isCursorActive
+        });
 
         if (message.latestUser && typeof message.latestUser === 'object') {
             latestUserSnapshot = message.latestUser;
+            clearPostLoginLoadingTimer();
             updateUserInfo(message.latestUser);
             syncLoopSessionWithUser(message.latestUser);
             if (!message.pendingResume && !shouldRecoverWorkerFromHostState()) {
@@ -3820,7 +3991,10 @@
         }
 
         if (!message.pendingResume && !message.session && !message.latestUser && !gasSession && !loopSession && isTestLoginUnlocked) {
-            transitionToLoginGate('');
+            if (!latestUserSnapshot) {
+                showMessage(statusMessage, 'post-login state missing: waiting for userStatus/dashboardSync', 'error');
+            }
+            transitionToLoginGate('post-login state missing: waiting for userStatus/dashboardSync');
         }
     }
 
@@ -3835,7 +4009,17 @@
     });
 
     function handleHostLoggedOut(message) {
-        transitionToLoginGate((message && message.message) || 'Logged out successfully.');
+        clearPostLoginLoadingTimer();
+        const reason = String((message && message.message) || 'Logged out successfully.').trim();
+
+        if (gasSession && gasSession.currentKeyCode) {
+            showLoading(false);
+            showUserStatus();
+            showMessage(statusMessage, `hostLoggedOut: ${reason}`, 'error');
+            return;
+        }
+
+        transitionToLoginGate(`hostLoggedOut: ${reason}`);
     }
 
     // Handle account-switch status

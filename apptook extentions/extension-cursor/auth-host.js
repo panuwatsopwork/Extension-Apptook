@@ -1,8 +1,8 @@
-const DEFAULT_GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJvMCawEeP2qCWTCxEUEZ3ygaV8f9aVJjXgJz8GcAVgoUKyKo9EiTmBRewOpecrYZE/exec";
+const DEFAULT_WP_API_BASE_URL = "https://apptook.waigona.com";
 
-function resolveGasWebAppUrl() {
-  const envUrl = String(process.env.APPTOOK_GAS_WEB_APP_URL || "").trim();
-  return envUrl || DEFAULT_GAS_WEB_APP_URL;
+function resolveWpApiBaseUrl() {
+  const envUrl = String(process.env.APPTOOK_WP_API_BASE_URL || "").trim();
+  return envUrl || DEFAULT_WP_API_BASE_URL || "";
 }
 
 let logger = {
@@ -35,9 +35,14 @@ function logError(eventName, err) {
   logger.error(`[APPTOOK AUTH] ${eventName}:`, message);
 }
 
-async function postToGas(payload) {
-  const gasWebAppUrl = resolveGasWebAppUrl();
-  const response = await fetch(gasWebAppUrl, {
+async function postToWpApi(path, payload) {
+  const baseUrl = resolveWpApiBaseUrl();
+  if (!baseUrl) {
+    throw new Error("WP API base URL is not configured.");
+  }
+
+  const url = `${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? "" : "/"}${path}`;
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -58,7 +63,7 @@ async function postToGas(payload) {
   };
 }
 
-async function loginViaGas({ apptookKey, username, device }) {
+async function loginViaWp({ apptookKey, username, device }) {
   const key = String(apptookKey || username || "").trim();
   const normalizedDevice = String(device || "").trim();
 
@@ -66,37 +71,36 @@ async function loginViaGas({ apptookKey, username, device }) {
     return { ok: false, status: 400, message: "APPTOOK License Key required" };
   }
 
-  logInfo("loginViaGas start", key);
+  logInfo("loginViaWp start", key);
 
   try {
-    const gasRes = await postToGas({
-      action: "login",
+    const wpRes = await postToWpApi("/wp-json/extension-cursor/v1/runtime/login", {
       apptookKey: key,
-      device: normalizedDevice
+      deviceId: normalizedDevice
     });
-    logInfo("loginViaGas response", `status=${gasRes.status}`);
+    logInfo("loginViaWp response", `status=${wpRes.status}`);
 
-    if (gasRes.status >= 400 || !gasRes.data.ok) {
+    if (wpRes.status >= 400 || !wpRes.data.ok) {
       return {
         ok: false,
-        status: gasRes.status || 401,
-        message: gasRes.data.message || "APPTOOK License Key is invalid"
+        status: wpRes.status || 401,
+        message: wpRes.data.message || "APPTOOK License Key is invalid"
       };
     }
 
     return {
       ok: true,
       status: 200,
-      message: gasRes.data.message || "Login success",
-      data: gasRes.data.data || null
+      message: wpRes.data.message || "Login success",
+      data: wpRes.data.data || wpRes.data || null
     };
   } catch (err) {
-    logError("loginViaGas error", err);
-    return { ok: false, status: 502, message: "Cannot reach Google Apps Script login service" };
+    logError("loginViaWp error", err);
+    return { ok: false, status: 502, message: "Cannot reach WordPress login service" };
   }
 }
 
-async function loopNextKeyViaGas({ sessionToken, currentSourceKey }) {
+async function loopNextKeyViaWp({ sessionToken, currentSourceKey }) {
   const token = String(sessionToken || "").trim();
   const sourceKey = String(currentSourceKey || "").trim();
 
@@ -104,37 +108,36 @@ async function loopNextKeyViaGas({ sessionToken, currentSourceKey }) {
     return { ok: false, status: 401, message: "Session expired. Please log in again." };
   }
 
-  logInfo("loopNextKeyViaGas start", sourceKey || "(empty)");
+  logInfo("loopNextKeyViaWp start", sourceKey || "(empty)");
 
   try {
-    const gasRes = await postToGas({
-      action: "loopNextKey",
+    const wpRes = await postToWpApi("/wp-json/extension-cursor/v1/runtime/loop-next", {
       sessionToken: token,
       currentSourceKey: sourceKey
     });
-    logInfo("loopNextKeyViaGas response", `status=${gasRes.status}`);
+    logInfo("loopNextKeyViaWp response", `status=${wpRes.status}`);
 
-    if (gasRes.status >= 400 || !gasRes.data.ok) {
+    if (wpRes.status >= 400 || !wpRes.data.ok) {
       return {
         ok: false,
-        status: gasRes.status || 400,
-        message: gasRes.data.message || "No next loop key available"
+        status: wpRes.status || 400,
+        message: wpRes.data.message || "No next loop key available"
       };
     }
 
     return {
       ok: true,
       status: 200,
-      message: gasRes.data.message || "Next loop key ready",
-      data: gasRes.data.data || null
+      message: wpRes.data.message || "Next loop key ready",
+      data: wpRes.data.data || wpRes.data || null
     };
   } catch (err) {
-    logError("loopNextKeyViaGas error", err);
-    return { ok: false, status: 502, message: "Cannot reach Google Apps Script loop-key service" };
+    logError("loopNextKeyViaWp error", err);
+    return { ok: false, status: 502, message: "Cannot reach WordPress loop-key service" };
   }
 }
 
-async function dashboardSyncViaGas({ sessionToken, snapshot }) {
+async function dashboardSyncViaWp({ sessionToken, snapshot }) {
   const token = String(sessionToken || "").trim();
   const payload = snapshot && typeof snapshot === "object" ? { ...snapshot } : {};
 
@@ -142,33 +145,32 @@ async function dashboardSyncViaGas({ sessionToken, snapshot }) {
     return { ok: false, status: 401, message: "Session expired. Please log in again." };
   }
 
-  logInfo("dashboardSyncViaGas start", String(payload.activeSourceKey || payload.licenseCode || "").trim() || "(empty)");
+  logInfo("dashboardSyncViaWp start", String(payload.activeSourceKey || payload.licenseCode || "").trim() || "(empty)");
 
   try {
-    const gasRes = await postToGas({
-      action: "dashboardSync",
+    const wpRes = await postToWpApi("/wp-json/extension-cursor/v1/runtime/dashboard-sync", {
       sessionToken: token,
       ...payload
     });
-    logInfo("dashboardSyncViaGas response", `status=${gasRes.status}`);
+    logInfo("dashboardSyncViaWp response", `status=${wpRes.status}`);
 
-    if (gasRes.status >= 400 || !gasRes.data.ok) {
+    if (wpRes.status >= 400 || !wpRes.data.ok) {
       return {
         ok: false,
-        status: gasRes.status || 400,
-        message: gasRes.data.message || "Dashboard sync failed"
+        status: wpRes.status || 400,
+        message: wpRes.data.message || "Dashboard sync failed"
       };
     }
 
     return {
       ok: true,
       status: 200,
-      message: gasRes.data.message || "Dashboard synced successfully",
-      data: gasRes.data.data || null
+      message: wpRes.data.message || "Dashboard synced successfully",
+      data: wpRes.data.data || wpRes.data || null
     };
   } catch (err) {
-    logError("dashboardSyncViaGas error", err);
-    return { ok: false, status: 502, message: "Cannot reach Google Apps Script dashboard service" };
+    logError("dashboardSyncViaWp error", err);
+    return { ok: false, status: 502, message: "Cannot reach WordPress dashboard service" };
   }
 }
 
@@ -182,9 +184,9 @@ function stopAuthHost() {
 
 module.exports = {
   setLogger,
-  loginViaGas,
-  loopNextKeyViaGas,
-  dashboardSyncViaGas,
+  loginViaWp,
+  loopNextKeyViaWp,
+  dashboardSyncViaWp,
   startAuthHost,
   stopAuthHost
 };

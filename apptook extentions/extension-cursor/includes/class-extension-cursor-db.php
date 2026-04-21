@@ -11,7 +11,7 @@ if (! defined('ABSPATH')) {
 
 final class Extension_Cursor_DB {
 
-	private const SCHEMA_VERSION = '1.0.0';
+	private const SCHEMA_VERSION = '1.0.1';
 	private const OPTION_KEY     = 'extension_cursor_schema_version';
 
 	public static function install(): void {
@@ -80,6 +80,7 @@ final class Extension_Cursor_DB {
 			group_id BIGINT UNSIGNED NOT NULL,
 			key_type VARCHAR(32) NOT NULL DEFAULT 'loop',
 			status VARCHAR(32) NOT NULL DEFAULT 'active',
+			mode VARCHAR(32) NOT NULL DEFAULT 'real',
 			expire_at DATETIME NULL,
 			current_group_key_id BIGINT UNSIGNED NULL,
 			current_sequence INT UNSIGNED NOT NULL DEFAULT 0,
@@ -90,6 +91,7 @@ final class Extension_Cursor_DB {
 			UNIQUE KEY uq_apptook_key (apptook_key),
 			KEY idx_group_id (group_id),
 			KEY idx_status (status),
+			KEY idx_mode (mode),
 			KEY idx_expire_at (expire_at)
 		) {$charset_collate};";
 
@@ -123,6 +125,41 @@ final class Extension_Cursor_DB {
 			KEY idx_created_at (created_at)
 		) {$charset_collate};";
 
+		$sql[] = "CREATE TABLE {$tables['simulation_licenses']} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			license_code VARCHAR(191) NOT NULL,
+			name VARCHAR(191) NOT NULL,
+			status VARCHAR(32) NOT NULL DEFAULT 'active',
+			mode VARCHAR(32) NOT NULL DEFAULT 'simulation',
+			token_capacity INT UNSIGNED NOT NULL DEFAULT 100,
+			current_raw_usage DECIMAL(18,6) NOT NULL DEFAULT 0,
+			note TEXT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY uq_license_code (license_code),
+			KEY idx_status (status),
+			KEY idx_mode (mode),
+			KEY idx_created_at (created_at)
+		) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$tables['simulation_licenses']} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			license_code VARCHAR(191) NOT NULL,
+			name VARCHAR(191) NOT NULL,
+			mode VARCHAR(32) NOT NULL DEFAULT 'simulation',
+			status VARCHAR(32) NOT NULL DEFAULT 'active',
+			token_capacity INT UNSIGNED NOT NULL DEFAULT 100,
+			current_raw_usage DECIMAL(18,6) NOT NULL DEFAULT 0,
+			note TEXT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY (id),
+			UNIQUE KEY uq_license_code (license_code),
+			KEY idx_status (status),
+			KEY idx_mode (mode)
+		) {$charset_collate};";
+
 		foreach ($sql as $statement) {
 			dbDelta($statement);
 		}
@@ -139,12 +176,13 @@ final class Extension_Cursor_DB {
 		$prefix = $wpdb->prefix . 'apptook_';
 
 		return array(
-			'stock_keys'   => $prefix . 'stock_keys',
-			'groups'       => $prefix . 'groups',
-			'group_keys'   => $prefix . 'group_keys',
-			'apptook_keys' => $prefix . 'keys',
-			'usage_logs'   => $prefix . 'usage_logs',
-			'switch_logs'  => $prefix . 'switch_logs',
+			'stock_keys'         => $prefix . 'stock_keys',
+			'groups'             => $prefix . 'groups',
+			'group_keys'         => $prefix . 'group_keys',
+			'apptook_keys'       => $prefix . 'keys',
+			'usage_logs'         => $prefix . 'usage_logs',
+			'switch_logs'        => $prefix . 'switch_logs',
+			'simulation_licenses' => $prefix . 'simulation_licenses',
 		);
 	}
 }

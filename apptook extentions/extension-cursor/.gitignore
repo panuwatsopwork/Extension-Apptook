@@ -1,4 +1,4 @@
-auth-bridge/.refresh-store.json
+0auth-bridge/.refresh-store.json
 tmp_vsix_build_*/
 tmp_vsix_verify_*/
 *.vsix

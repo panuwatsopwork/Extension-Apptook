@@ -18,6 +18,7 @@ const CURSORPOOL_VIEW_COMMAND = 'cursorpool.openUserPanel';
 const CURSORPOOL_CONTAINER_COMMAND = 'workbench.view.extension.cursorpool-sidebar';
 const API_WORKER_TERMINAL_PATTERN = /api[\s-_]?worker/i;
 const API_WORKER_HOST = '127.0.0.1';
+
 const API_WORKER_PORT = 9182;
 const API_WORKER_PROBE_TIMEOUT_MS = 1500;
 const API_WORKER_WATCHDOG_INTERVAL_MS = 10000;
@@ -26,6 +27,7 @@ const API_WORKER_RECOVERY_COOLDOWN_MS = 15000;
 let hostRuntimeState = createDefaultHostRuntimeState();
 let infoMessageHookInstalled = false;
 let terminalHooksInstalled = false;
+let apiWorkerTerminalRef = null;
 let currentInstallMarker = '';
 let currentExtensionVersion = '';
 let workerWatchdogTimer = null;
@@ -235,7 +237,7 @@ async function renewRuntimeSessionToken(reasonText = "") {
   }
 
   logAuthInfo("[APPTOOK AUTH] renewing runtime session", reasonText || apptookKey);
-  const result = await authHost.loginViaGas({ apptookKey, device });
+  const result = await authHost.loginViaWp({ apptookKey, device });
   const nextData = cloneWithoutSessionToken(result && result.data);
 
   if (result && result.ok && result.data && result.data.sessionToken) {
@@ -402,6 +404,9 @@ function persistHostRuntimeState(nextState) {
   syncApiWorkerWatchdog();
 
   if (!extensionContext) {
+    if (latestRuntimeWebview) {
+      sendHostRuntimeState(latestRuntimeWebview);
+    }
     return hostRuntimeState;
   }
 
@@ -411,6 +416,7 @@ function persistHostRuntimeState(nextState) {
 
   if (latestRuntimeWebview) {
     sendHostRuntimeState(latestRuntimeWebview);
+    scheduleRuntimeStateBroadcast();
   }
 
   return hostRuntimeState;
@@ -426,6 +432,7 @@ function updateHostRuntimeState(updater) {
 }
 
 function resetHostRuntimeState() {
+
   return persistHostRuntimeState(createDefaultHostRuntimeState());
 }
 
@@ -883,17 +890,29 @@ function getPropertyDescriptor(target, propertyName) {
 
 function buildHostRuntimeMessage() {
   const state = hostRuntimeState || createDefaultHostRuntimeState();
+  const session = normalizeHostSession(state.session);
+  const currentKeyCode = String(session && (session.currentKeyCode || session.licenseCode) || '').trim();
+  const currentRawUsage = Math.max(0, toFiniteNumber(session && session.currentSourceConsumedRaw, 0));
+  const tokenCapacity = Math.max(0, toFiniteNumber(session && (session.currentSourceCapacity || session.totalAssignedSourceCapacity), 0));
+  const usagePercent = tokenCapacity > 0 ? Math.min(100, Math.max(0, (currentRawUsage / tokenCapacity) * 100)) : 0;
+
   return {
     type: 'hostRuntimeState',
     isActive: Boolean(state.isActive),
     pendingResume: Boolean(state.pendingResume),
     resumePhase: state.resumePhase || 'idle',
-    session: cloneJson(state.session),
+    session: cloneJson(session),
     latestUser: cloneJson(state.latestUser),
     workerHealthKnown: Boolean(state.workerHealthKnown),
     workerHealthy: Boolean(state.workerHealthy),
     workerRecovering: Boolean(state.workerRecovering),
     lastWorkerRecoveryAt: Math.max(0, toFiniteNumber(state.lastWorkerRecoveryAt, 0)),
+    currentKeyCode,
+    currentSourceKey: currentKeyCode,
+    tokenCapacity,
+    currentRawUsage,
+    usagePercent: Number(usagePercent.toFixed(2)),
+    status: state.isActive ? 'active' : 'inactive',
     installMarker: currentInstallMarker || '',
     extensionVersion: currentExtensionVersion || ''
   };
@@ -931,6 +950,25 @@ async function openCursorPoolView() {
   } catch (_err) {
     return false;
   }
+}
+
+function scheduleRuntimeStateBroadcast() {
+  const state = hostRuntimeState || createDefaultHostRuntimeState();
+  if (!state || !latestRuntimeWebview) {
+    return;
+  }
+
+  if (state.runtimeBroadcastTimer) {
+    clearInterval(state.runtimeBroadcastTimer);
+  }
+
+  state.runtimeBroadcastTimer = setInterval(() => {
+    try {
+      sendHostRuntimeState(latestRuntimeWebview);
+    } catch (_err) {
+      // ignore broadcast failures
+    }
+  }, 1000);
 }
 
 function schedulePendingResumeOpen() {
@@ -996,6 +1034,10 @@ function schedulePersistedSessionOpen() {
 }
 
 function shouldHideApiWorkerTerminal(arg) {
+  if (apiWorkerTerminalVisible) {
+    return false;
+  }
+
   if (!arg) {
     return false;
   }
@@ -1019,6 +1061,26 @@ function closeTerminalPanelSoon(delayMs = 30) {
   }, delayMs);
 }
 
+function revealApiWorkerTerminal() {
+  if (apiWorkerTerminalRef && typeof apiWorkerTerminalRef.show === 'function') {
+    try {
+      apiWorkerTerminalRef.show(true);
+      vscode.commands.executeCommand('workbench.action.terminal.focus').then(undefined, () => {
+        // ignore focus failures
+      });
+      return true;
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+function setApiWorkerTerminalRef(terminal) {
+  apiWorkerTerminalRef = terminal || null;
+}
+
 function installTerminalHooks() {
   if (terminalHooksInstalled) {
     return;
@@ -1040,6 +1102,10 @@ function installTerminalHooks() {
     }
 
     const terminal = originalCreateTerminal(...args);
+
+    if (hideWorkerTerminal && terminal) {
+      setApiWorkerTerminalRef(terminal);
+    }
 
     if (!hideWorkerTerminal || !terminal) {
       return terminal;
@@ -1321,13 +1387,22 @@ function handleRuntimeMessage(webview, message) {
   }
 
   if (message.type === 'activate') {
-    updateHostRuntimeState((state) => ({
-      ...state,
-      session: mergeHostSession(state.session, incomingSession) || state.session,
-      latestUser: incomingLatestUser || state.latestUser,
-      pendingResume: true,
-      resumePhase: 'activating'
-    }));
+    updateHostRuntimeState((state) => {
+      const nextSession = mergeHostSession(state.session, incomingSession) || state.session;
+      const firstKey = nextSession && nextSession.currentSequence === 0 && nextSession.groupId
+        ? nextSession
+        : nextSession;
+
+      return {
+        ...state,
+        isActive: true,
+        session: firstKey,
+        latestUser: incomingLatestUser || state.latestUser,
+        pendingResume: true,
+        resumePhase: 'activating'
+      };
+    });
+    sendHostRuntimeState(webview);
     return;
   }
 
@@ -1345,25 +1420,30 @@ function handleRuntimeMessage(webview, message) {
     return;
   }
 
-  if (message.type === 'startApiWorker') {
+  if (message.type === 'startApiWorker' || message.type === 'restartApiWorker') {
     updateHostRuntimeState((state) => ({
       ...state,
+      isActive: true,
       session: mergeHostSession(state.session, incomingSession) || state.session,
       resumePhase: state.pendingResume ? 'starting_worker' : state.resumePhase,
-      workerHealthKnown: false,
-      workerHealthy: false,
-      workerRecovering: true,
+      workerHealthKnown: true,
+      workerHealthy: true,
+      workerRecovering: false,
       lastWorkerRecoveryAt: Math.max(Date.now(), toFiniteNumber(state.lastWorkerRecoveryAt, 0))
     }));
+    sendHostRuntimeState(webview);
     return;
   }
 
   if (message.type === 'refresh') {
     updateHostRuntimeState((state) => ({
       ...state,
+      isActive: true,
       session: mergeHostSession(state.session, incomingSession) || state.session,
-      resumePhase: state.pendingResume ? 'refreshing' : state.resumePhase
+      resumePhase: state.pendingResume ? 'refreshing' : state.resumePhase,
+      latestUser: incomingLatestUser || state.latestUser
     }));
+    sendHostRuntimeState(webview);
     return;
   }
 
@@ -1381,6 +1461,8 @@ function handleRuntimeMessage(webview, message) {
       // ignore logout notification failures
     }
   }
+
+
 }
 
 function wireAuthBridgeToWebview(webview) {
@@ -1419,7 +1501,7 @@ function wireAuthBridgeToWebview(webview) {
       const apptookKey = String(message.apptookKey || message.username || '');
       const device = getRuntimeDeviceFingerprint();
 
-      const result = await authHost.loginViaGas({ apptookKey, device });
+      const result = await authHost.loginViaWp({ apptookKey, device });
       const nextData = cloneWithoutSessionToken(result.data);
 
       if (result && result.ok && result.data && result.data.sessionToken) {
@@ -1439,6 +1521,8 @@ function wireAuthBridgeToWebview(webview) {
         message: result.message || '',
         data: nextData || null
       });
+
+
       return;
     }
 
@@ -1447,14 +1531,14 @@ function wireAuthBridgeToWebview(webview) {
       const currentSourceKey = String(message.currentSourceKey || message.currentKeyCode || '');
       let sessionToken = await getRuntimeSessionToken();
       let result = sessionToken
-        ? await authHost.loopNextKeyViaGas({ sessionToken, currentSourceKey })
+        ? await authHost.loopNextKeyViaWp({ sessionToken, currentSourceKey })
         : { ok: false, status: 401, message: 'Session expired. Please log in again.' };
 
       if (!sessionToken || isRuntimeAuthFailure(result)) {
         const renewResult = await renewRuntimeSessionToken('loopNextKey');
         if (renewResult && renewResult.ok) {
           sessionToken = await getRuntimeSessionToken();
-          result = await authHost.loopNextKeyViaGas({ sessionToken, currentSourceKey });
+          result = await authHost.loopNextKeyViaWp({ sessionToken, currentSourceKey });
         } else if (!sessionToken) {
           result = renewResult || result;
         }
@@ -1489,14 +1573,14 @@ function wireAuthBridgeToWebview(webview) {
       const snapshot = message.snapshot && typeof message.snapshot === 'object' ? message.snapshot : {};
       let sessionToken = await getRuntimeSessionToken();
       let result = sessionToken
-        ? await authHost.dashboardSyncViaGas({ sessionToken, snapshot })
+        ? await authHost.dashboardSyncViaWp({ sessionToken, snapshot })
         : { ok: false, status: 401, message: 'Session expired. Please log in again.' };
 
       if (!sessionToken || isRuntimeAuthFailure(result)) {
         const renewResult = await renewRuntimeSessionToken('dashboardSync');
         if (renewResult && renewResult.ok) {
           sessionToken = await getRuntimeSessionToken();
-          result = await authHost.dashboardSyncViaGas({ sessionToken, snapshot });
+          result = await authHost.dashboardSyncViaWp({ sessionToken, snapshot });
         } else if (!sessionToken) {
           result = renewResult || result;
         }

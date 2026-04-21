@@ -19,6 +19,13 @@ const runtimeEntries = [
   "LICENSE.md"
 ];
 
+const buildIdentity = {
+  name: String(packageJson.name || "cursorpool").trim(),
+  publisher: String(packageJson.publisher || "keg1255").trim(),
+  displayName: String(packageJson.displayName || packageJson.name || "Cursor Extension").trim(),
+  version: String(packageJson.version || "1.0.0").trim()
+};
+
 function escapeXml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -52,6 +59,8 @@ function copyEntry(relativePath, destinationRoot) {
   fs.copyFileSync(sourcePath, targetPath);
 }
 
+
+
 function buildVsixManifest() {
   const extensionKind = Array.isArray(packageJson.extensionKind) ? packageJson.extensionKind.join(",") : "";
   const keywords = Array.isArray(packageJson.keywords) ? packageJson.keywords.join(",") : "";
@@ -60,8 +69,8 @@ function buildVsixManifest() {
   return `<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="${escapeXml(packageJson.name)}" Version="${escapeXml(packageJson.version)}" Publisher="${escapeXml(packageJson.publisher)}" />
-    <DisplayName>${escapeXml(packageJson.displayName)}</DisplayName>
+    <Identity Language="en-US" Id="${escapeXml(buildIdentity.name)}" Version="${escapeXml(buildIdentity.version)}" Publisher="${escapeXml(buildIdentity.publisher)}" />
+    <DisplayName>${escapeXml(buildIdentity.displayName)}</DisplayName>
     <Description xml:space="preserve">${escapeXml(packageJson.description)}</Description>
     <Tags>${escapeXml(keywords)}</Tags>
     <Categories>${escapeXml(categories)}</Categories>

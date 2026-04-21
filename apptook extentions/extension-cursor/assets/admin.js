@@ -29,7 +29,6 @@
   const state = {
     sourceLicenses: [],
     apptookKeys: [],
-    apptookKeySources: [],
     dashboardTokens: [],
     localStockKeys: [],
     localGroups: [],
@@ -39,40 +38,15 @@
 
   const $ = (id) => document.getElementById(id);
 
-  const adminToken = $('adminToken');
-  const setupButton = $('setupButton');
-  const refreshButton = $('refreshButton');
-  const debugPingButton = $('debugPingButton');
   const statusText = $('statusText');
   const responseBox = $('responseBox');
 
-  const sourceKeysText = $('sourceKeysText');
-  const sourceExpireAt = $('sourceExpireAt');
-  const sourceMaxDevices = $('sourceMaxDevices');
-  const sourceTokenCapacity = $('sourceTokenCapacity');
-  const sourceNote = $('sourceNote');
-  const importSourceKeysButton = $('importSourceKeysButton');
-
-  const apptookKey = $('apptookKey');
-  const keyType = $('keyType');
-  const appKeyExpireAt = $('appKeyExpireAt');
-  const appKeyNote = $('appKeyNote');
-  const randomApptookKeyButton = $('randomApptookKeyButton');
-  const createApptookKeyButton = $('createApptookKeyButton');
-
-  const assignApptookKeySelect = $('assignApptookKeySelect');
-  const assignKeyType = $('assignKeyType');
-  const addSourceRowButton = $('addSourceRowButton');
-  const sourceRows = $('sourceRows');
-  const saveSourcesButton = $('saveSourcesButton');
-  const sourceKeyList = $('sourceKeyList');
-
-  const sourceLicensesTable = $('sourceLicensesTable');
-  const apptookKeysTable = $('apptookKeysTable');
-  const apptookKeySourcesTable = $('apptookKeySourcesTable');
-  const dashboardTokensTable = $('dashboardTokensTable');
 
   const localStockKeysText = $('localStockKeysText');
+  const localStockSearch = $('localStockSearch');
+  const localStockClearButton = $('localStockClearButton');
+  const localGroupSearch = $('localGroupSearch');
+  const localGroupClearButton = $('localGroupClearButton');
   const localProvider = $('localProvider');
   const localExpireAt = $('localExpireAt');
   const localMaxDevices = $('localMaxDevices');
@@ -105,9 +79,7 @@
   const localApptookKeysTable = $('localApptookKeysTable');
 
   const tabMainButton = $('tabMainButton');
-  const tabRuntimeMonitorButton = $('tabRuntimeMonitorButton');
   const tabMainContent = $('tabMainContent');
-  const tabRuntimeMonitorContent = $('tabRuntimeMonitorContent');
 
 
   function setStatus(message) {
@@ -135,11 +107,33 @@
     button.textContent = busy ? busyText : button.dataset.defaultLabel;
   }
 
+  function switchTab(tab) {
+    const isSimulation = tab === 'simulation';
+    if (tabMainButton) {
+      tabMainButton.classList.toggle('active', !isSimulation);
+      tabMainButton.setAttribute('aria-selected', String(!isSimulation));
+    }
+    if (tabMainContent) tabMainContent.classList.toggle('active', !isSimulation);
+  }
+
+  function renderSimulationLicenses(_items) {
+    return;
+  }
+
   function buildRandomApptookKey() {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let suffix = '';
     for (let i = 0; i < 10; i += 1) suffix += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
     return `apptook_${suffix}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   async function callWpAjax(actionName, fields = {}) {
@@ -316,127 +310,6 @@
     container.innerHTML = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   }
 
-  function hydrateKeyOptions() {
-    if (!assignApptookKeySelect) return;
-    const rows = Array.isArray(state.apptookKeys) ? state.apptookKeys : [];
-    const header = rows[0] || [];
-    const keyIndex = header.indexOf('apptook_key');
-    const typeIndex = header.indexOf('key_type');
-
-    const current = assignApptookKeySelect.value;
-    assignApptookKeySelect.innerHTML = '<option value="">Select APPTOOK key</option>';
-
-    rows.slice(1).forEach((row) => {
-      const keyValue = String(row[keyIndex] || '').trim();
-      if (!keyValue) return;
-      const option = document.createElement('option');
-      option.value = keyValue;
-      option.textContent = `${keyValue} (${String(row[typeIndex] || 'single').trim() || 'single'})`;
-      assignApptookKeySelect.appendChild(option);
-    });
-
-    if (current) assignApptookKeySelect.value = current;
-  }
-
-  function hydrateSourceKeyList() {
-    if (!sourceKeyList) return;
-    const rows = Array.isArray(state.sourceLicenses) ? state.sourceLicenses : [];
-    const header = rows[0] || [];
-    const keyIndex = header.indexOf('source_key');
-
-    sourceKeyList.innerHTML = '';
-    rows.slice(1).forEach((row) => {
-      const keyValue = String(row[keyIndex] || '').trim();
-      if (!keyValue) return;
-      const option = document.createElement('option');
-      option.value = keyValue;
-      sourceKeyList.appendChild(option);
-    });
-  }
-
-  function getSelectedKeyRecord() {
-    const selectedKey = String((assignApptookKeySelect && assignApptookKeySelect.value) || '').trim();
-    if (!selectedKey) return null;
-
-    const rows = Array.isArray(state.apptookKeys) ? state.apptookKeys : [];
-    const header = rows[0] || [];
-    const keyIndex = header.indexOf('apptook_key');
-    const typeIndex = header.indexOf('key_type');
-
-    for (const row of rows.slice(1)) {
-      if (String(row[keyIndex] || '').trim() !== selectedKey) continue;
-      return { apptookKey: selectedKey, keyType: String(row[typeIndex] || 'single').trim() || 'single' };
-    }
-    return null;
-  }
-
-  function refreshSourceRowIndexes() {
-    Array.from(sourceRows.children).forEach((row, i) => {
-      const seq = row.querySelector('.assign-seq');
-      if (seq) seq.textContent = String(i + 1);
-    });
-  }
-
-  function enforceAssignKeyType() {
-    const record = getSelectedKeyRecord();
-    const rows = Array.from(sourceRows.children);
-    const isSingle = record && record.keyType === 'single';
-    if (assignKeyType) assignKeyType.value = record ? record.keyType : '-';
-    if (addSourceRowButton) addSourceRowButton.disabled = !!(isSingle && rows.length >= 1);
-    rows.forEach((row, index) => {
-      const removeBtn = row.querySelector('.remove-source-row');
-      if (removeBtn) removeBtn.disabled = !!(isSingle && rows.length <= 1 && index === 0);
-    });
-  }
-
-  function createSourceRow(value = '') {
-    const row = document.createElement('div');
-    row.className = 'assign-row';
-    row.innerHTML = `
-      <div class="assign-seq"></div>
-      <input type="text" class="source-key-input" list="sourceKeyList" placeholder="Enter source license" />
-      <button type="button" class="btn-secondary remove-source-row">Remove</button>
-    `;
-
-    const input = row.querySelector('.source-key-input');
-    input.value = value;
-
-    row.querySelector('.remove-source-row').addEventListener('click', () => {
-      row.remove();
-      refreshSourceRowIndexes();
-      enforceAssignKeyType();
-    });
-
-    sourceRows.appendChild(row);
-    refreshSourceRowIndexes();
-    return row;
-  }
-
-  function getAssignedSourceKeys(apptookKeyValue) {
-    const rows = Array.isArray(state.apptookKeySources) ? state.apptookKeySources : [];
-    const header = rows[0] || [];
-    const keyIndex = header.indexOf('apptook_key');
-    const sourceIndex = header.indexOf('source_key');
-    const sequenceIndex = header.indexOf('sequence');
-
-    return rows.slice(1)
-      .filter((row) => String(row[keyIndex] || '').trim() === apptookKeyValue)
-      .sort((a, b) => Number(a[sequenceIndex] || 0) - Number(b[sequenceIndex] || 0))
-      .map((row) => String(row[sourceIndex] || '').trim())
-      .filter(Boolean);
-  }
-
-  function refillAssignRows(apptookKeyValue) {
-    sourceRows.innerHTML = '';
-    const existing = getAssignedSourceKeys(apptookKeyValue);
-    if (!existing.length) {
-      createSourceRow('');
-    } else {
-      existing.forEach((v) => createSourceRow(v));
-    }
-    enforceAssignKeyType();
-  }
-
   function normalizeRowsFromObjects(items) {
     if (!Array.isArray(items) || !items.length) {
       return [];
@@ -586,14 +459,22 @@
     });
   }
 
+  function matchesSearch(item, query) {
+    if (!query) return true;
+    const haystack = Object.values(item || {}).map((v) => String(v ?? '').toLowerCase()).join(' ');
+    return haystack.includes(query);
+  }
+
   function renderLocalStockTable(items) {
     if (!localStockTable) return;
-    if (!Array.isArray(items) || !items.length) {
+    const query = String((localStockSearch && localStockSearch.value) || '').trim().toLowerCase();
+    const filtered = Array.isArray(items) ? items.filter((item) => matchesSearch(item, query)) : [];
+    if (!filtered.length) {
       localStockTable.innerHTML = '<div class="empty">No local stock keys loaded.</div>';
       return;
     }
 
-    const rows = items.map((item) => {
+    const rows = filtered.map((item) => {
       const id = Number(item.id || 0);
       return `
         <tr data-stock-key-id="${id}">
@@ -649,12 +530,14 @@
 
   function renderLocalGroupsTable(items) {
     if (!localGroupsTable) return;
-    if (!Array.isArray(items) || !items.length) {
+    const query = String((localGroupSearch && localGroupSearch.value) || '').trim().toLowerCase();
+    const filtered = Array.isArray(items) ? items.filter((item) => matchesSearch(item, query)) : [];
+    if (!filtered.length) {
       localGroupsTable.innerHTML = '<div class="empty">No groups loaded.</div>';
       return;
     }
 
-    const rows = items.map((item) => {
+    const rows = filtered.map((item) => {
       const id = Number(item.id || 0);
       return `
         <tr data-group-id="${id}">
@@ -704,6 +587,106 @@
     });
   }
 
+  function renderSimulationLicenses(items) {
+    if (!simulationLicensesTable) return;
+    const rows = Array.isArray(items) ? items : [];
+    if (!rows.length) {
+      simulationLicensesTable.innerHTML = '<div class="empty">No simulation licences loaded.</div>';
+      return;
+    }
+
+    const header = ['id', 'license_code', 'name', 'status', 'mode', 'token_capacity', 'current_raw_usage', 'usage_percent', 'note', 'actions'];
+    const headerHtml = header.map((item) => `<th>${escapeHtml(item)}</th>`).join('');
+    const bodyHtml = rows.map((row) => {
+      const capacity = Number(row.token_capacity || 0);
+      const raw = Number(row.current_raw_usage || 0);
+      const pct = capacity > 0 ? ((raw / capacity) * 100).toFixed(2) : '0.00';
+      return `<tr>
+        <td>${escapeHtml(row.id)}</td>
+        <td>${escapeHtml(row.license_code)}</td>
+        <td>${escapeHtml(row.name)}</td>
+        <td>${escapeHtml(row.status)}</td>
+        <td>${escapeHtml(row.mode)}</td>
+        <td>${escapeHtml(row.token_capacity)}</td>
+        <td>${escapeHtml(row.current_raw_usage)}</td>
+        <td>${escapeHtml(pct)}%</td>
+        <td>${escapeHtml(row.note || '')}</td>
+        <td>
+          <button class="btn-secondary simulation-start" data-id="${escapeHtml(row.id)}" type="button">Start</button>
+          <button class="btn-secondary simulation-stop" data-id="${escapeHtml(row.id)}" type="button">Stop</button>
+          <button class="btn-secondary simulation-reset" data-id="${escapeHtml(row.id)}" type="button">Reset Usage</button>
+          <button class="btn-secondary simulation-delete" data-id="${escapeHtml(row.id)}" type="button">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+    simulationLicensesTable.innerHTML = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+
+    simulationLicensesTable.querySelectorAll('.simulation-start').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        try {
+          const result = await callLocalRest(`/simulation-licenses/${id}/start`, 'POST');
+          setResponse(result);
+          setStatus(result.message || 'Simulation licence started.');
+          await refreshSimulationLicenses(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+
+    simulationLicensesTable.querySelectorAll('.simulation-stop').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        try {
+          const result = await callLocalRest(`/simulation-licenses/${id}/stop`, 'POST');
+          setResponse(result);
+          setStatus(result.message || 'Simulation licence stopped.');
+          await refreshSimulationLicenses(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+
+    simulationLicensesTable.querySelectorAll('.simulation-reset').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        try {
+          const result = await callLocalRest(`/simulation-licenses/${id}/reset`, 'POST');
+          setResponse(result);
+          setStatus(result.message || 'Simulation usage reset.');
+          await refreshSimulationLicenses(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+
+    simulationLicensesTable.querySelectorAll('.simulation-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id || 0);
+        if (!id) return;
+        if (!window.confirm('Delete this simulation licence?')) return;
+        try {
+          const result = await callLocalRest(`/simulation-licenses/${id}`, 'DELETE');
+          setResponse(result);
+          setStatus(result.message || 'Simulation licence deleted.');
+          await refreshSimulationLicenses(false);
+        } catch (err) {
+          setResponse({ ok: false, message: err.message || String(err) });
+          setStatus(err.message || String(err));
+        }
+      });
+    });
+  }
+
   async function refreshLocalData(showSuccess = true) {
     if (!localStockTable && !localGroupsTable) {
       return;
@@ -737,79 +720,28 @@
     }
   }
 
-  function applyExplorerData(payload) {
-    state.sourceLicenses = Array.isArray(payload.sourceLicenses) ? payload.sourceLicenses : [];
-    state.apptookKeys = Array.isArray(payload.apptookKeys) ? payload.apptookKeys : [];
-    state.apptookKeySources = Array.isArray(payload.apptookKeySources) ? payload.apptookKeySources : [];
-    state.dashboardTokens = Array.isArray(payload.dashboardTokens) ? payload.dashboardTokens : [];
-
-    renderTable(sourceLicensesTable, state.sourceLicenses);
-    renderTable(apptookKeysTable, state.apptookKeys);
-    renderTable(apptookKeySourcesTable, state.apptookKeySources);
-    renderTable(dashboardTokensTable, state.dashboardTokens);
-
-    hydrateKeyOptions();
-    hydrateSourceKeyList();
-
-    if (assignApptookKeySelect && assignApptookKeySelect.value) {
-      refillAssignRows(assignApptookKeySelect.value);
-    } else if (sourceRows && !sourceRows.children.length) {
-      createSourceRow('');
-    }
-    enforceAssignKeyType();
-  }
-
-  async function refreshAllData(showSuccess = true) {
-    setBusy(refreshButton, true, 'Refreshing...');
-    setStatus('Loading APPTOOK key data...');
-    try {
-      const result = await postAction('adminListKeyData');
-      applyExplorerData(result);
-      if (showSuccess) setStatus(result.message || 'Data loaded successfully.');
-    } catch (err) {
-      setStatus(err.message || String(err));
-      setResponse({ ok: false, message: err.message || String(err) });
-    } finally {
-      setBusy(refreshButton, false);
-    }
-  }
-
-  setupButton.addEventListener('click', async () => {
-    setBusy(setupButton, true, 'Setting up...');
-    setStatus('Running setup...');
-    try {
-      const result = await postAction('setup');
-      setStatus(result.message || 'Setup completed.');
-      await refreshAllData(false);
-    } catch (err) {
-      setStatus(err.message || String(err));
-    } finally {
-      setBusy(setupButton, false);
-    }
-  });
-
-  refreshButton.addEventListener('click', () => refreshAllData(true));
-
-  if (debugPingButton) {
-    debugPingButton.addEventListener('click', async () => {
-      setBusy(debugPingButton, true, 'Pinging...');
-      setStatus('Running WP AJAX debug ping...');
-      try {
-        const result = await callWpAjax('extension_cursor_admin_debug_ping');
-        setResponse({ ok: true, debug: result });
-        setStatus(result.message || 'Debug ping OK.');
-      } catch (err) {
-        setResponse({ ok: false, message: err.message || String(err) });
-        setStatus(err.message || String(err));
-      } finally {
-        setBusy(debugPingButton, false);
-      }
-    });
-  }
 
   if (localRefreshButton) {
     localRefreshButton.addEventListener('click', () => {
       refreshLocalData(true);
+    });
+  }
+  if (localStockSearch) {
+    localStockSearch.addEventListener('input', () => renderLocalStockTable(state.localStockKeys));
+  }
+  if (localStockClearButton) {
+    localStockClearButton.addEventListener('click', () => {
+      if (localStockSearch) localStockSearch.value = '';
+      renderLocalStockTable(state.localStockKeys);
+    });
+  }
+  if (localGroupSearch) {
+    localGroupSearch.addEventListener('input', () => renderLocalGroupsTable(state.localGroups));
+  }
+  if (localGroupClearButton) {
+    localGroupClearButton.addEventListener('click', () => {
+      if (localGroupSearch) localGroupSearch.value = '';
+      renderLocalGroupsTable(state.localGroups);
     });
   }
 
@@ -887,6 +819,103 @@
     });
   }
 
+  function getSimulationUsagePercent(item) {
+    const capacity = Number(item && item.token_capacity ? item.token_capacity : 0);
+    const raw = Number(item && item.current_raw_usage ? item.current_raw_usage : 0);
+    return capacity > 0 ? (raw / capacity) * 100 : 0;
+  }
+
+  async function tickSimulationLicense(id) {
+    if (!id) return null;
+    const result = await callLocalRest(`/simulation-licenses/${id}/tick`, 'POST');
+    setResponse(result);
+    return result;
+  }
+
+  function startSimulationAutoTick(id) {
+    stopSimulationAutoTick();
+    if (!id) return;
+    state.simulationAutoTickTimer = setInterval(async () => {
+      try {
+        const current = (state.simulationLicenses || []).find((item) => Number(item.id || 0) === Number(id));
+        if (!current) return;
+        const pct = getSimulationUsagePercent(current);
+        if (pct >= 100) {
+          stopSimulationAutoTick();
+          setStatus('Simulation licence reached 100%.');
+          return;
+        }
+        await tickSimulationLicense(id);
+        await refreshSimulationLicenses(false);
+      } catch (err) {
+        stopSimulationAutoTick();
+        setStatus(err.message || String(err));
+      }
+    }, 1000);
+  }
+
+  function stopSimulationAutoTick() {
+    if (state.simulationAutoTickTimer) {
+      clearInterval(state.simulationAutoTickTimer);
+      state.simulationAutoTickTimer = null;
+    }
+  }
+
+  async function refreshSimulationLicenses(showSuccess = true) {
+    if (!simulationLicensesTable) return;
+    if (simulationRefreshButton) setBusy(simulationRefreshButton, true, 'Refreshing...');
+    try {
+      const result = await callLocalRest('/simulation-licenses', 'GET');
+      state.simulationLicenses = Array.isArray(result.items) ? result.items : [];
+      renderSimulationLicenses(state.simulationLicenses);
+      if (showSuccess) setStatus(`Loaded ${state.simulationLicenses.length} simulation licences.`);
+    } catch (err) {
+      setResponse({ ok: false, message: err.message || String(err) });
+      setStatus(err.message || String(err));
+    } finally {
+      if (simulationRefreshButton) setBusy(simulationRefreshButton, false);
+    }
+  }
+
+  if (simulationCreateButton) {
+    simulationCreateButton.addEventListener('click', async () => {
+      const licenseCode = String((simulationLicenseCode && simulationLicenseCode.value) || '').trim();
+      const name = String((simulationLicenseName && simulationLicenseName.value) || '').trim();
+      if (!licenseCode || !name) {
+        setStatus('License code and name are required.');
+        return;
+      }
+      setBusy(simulationCreateButton, true, 'Creating...');
+      try {
+        const result = await callLocalRest('/simulation-licenses', 'POST', {
+          licenseCode,
+          name,
+          tokenCapacity: simulationTokenCapacity ? Number(simulationTokenCapacity.value || 100) : 100,
+          currentRawUsage: simulationCurrentRawUsage ? Number(simulationCurrentRawUsage.value || 0) : 0,
+          mode: simulationMode ? simulationMode.value : 'simulation',
+          status: simulationStatus ? simulationStatus.value : 'active',
+          note: simulationNote ? simulationNote.value : ''
+        });
+        setResponse(result);
+        setStatus(result.message || 'Simulation licence created successfully.');
+        if (simulationLicenseCode) simulationLicenseCode.value = '';
+        if (simulationLicenseName) simulationLicenseName.value = '';
+        if (simulationCurrentRawUsage) simulationCurrentRawUsage.value = '0';
+        if (simulationNote) simulationNote.value = '';
+        await refreshSimulationLicenses(false);
+      } catch (err) {
+        setResponse({ ok: false, message: err.message || String(err) });
+        setStatus(err.message || String(err));
+      } finally {
+        setBusy(simulationCreateButton, false);
+      }
+    });
+  }
+
+  if (simulationRefreshButton) {
+    simulationRefreshButton.addEventListener('click', () => refreshSimulationLicenses(true));
+  }
+
   async function refreshLocalApptookKeys(showSuccess = true) {
     if (!localApptookKeysTable) return;
 
@@ -901,7 +930,35 @@
         return clone;
       });
 
-      renderTable(localApptookKeysTable, normalizeRowsFromObjects(sanitizedItems));
+      const rows = normalizeRowsFromObjects(sanitizedItems);
+      if (rows.length) {
+        const header = rows[0];
+        const headerHtml = header.map((item) => `<th>${escapeHtml(item)}</th>`).join('') + '<th>Actions</th>';
+        const bodyHtml = rows.slice(1)
+          .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}<td><button class="btn-ghost local-apptook-delete" data-id="${escapeHtml(row[0])}" type="button">Delete</button></td></tr>`)
+          .join('');
+        localApptookKeysTable.innerHTML = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+      } else {
+        renderTable(localApptookKeysTable, rows);
+      }
+
+      localApptookKeysTable.querySelectorAll('.local-apptook-delete').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = Number(btn.dataset.id || 0);
+          if (!id) return;
+          if (!window.confirm('Delete this APTOOK key?')) return;
+          try {
+            const result = await callLocalRest(`/apptook-keys/${id}`, 'DELETE');
+            setResponse(result);
+            setStatus(result.message || 'APTOOK key deleted.');
+            await refreshLocalApptookKeys(false);
+          } catch (err) {
+            setResponse({ ok: false, message: err.message || String(err) });
+            setStatus(err.message || String(err));
+          }
+        });
+      });
+
       if (showSuccess) setStatus(`Loaded ${state.localApptookKeys.length} APTOOK keys.`);
     } catch (err) {
       setResponse({ ok: false, message: err.message || String(err) });
@@ -1012,282 +1069,6 @@
     });
   }
 
-  function switchTab(tab) {
-    const isRuntime = tab === 'runtime';
-    if (tabMainButton) {
-      tabMainButton.classList.toggle('active', !isRuntime);
-      tabMainButton.setAttribute('aria-selected', String(!isRuntime));
-    }
-    if (tabRuntimeMonitorButton) {
-      tabRuntimeMonitorButton.classList.toggle('active', isRuntime);
-      tabRuntimeMonitorButton.setAttribute('aria-selected', String(isRuntime));
-    }
-    if (tabMainContent) tabMainContent.classList.toggle('active', !isRuntime);
-    if (tabRuntimeMonitorContent) tabRuntimeMonitorContent.classList.toggle('active', isRuntime);
-  }
-
-  function renderRuntimeMonitorData(result) {
-    if (!result) return;
-
-    if (rmUsagePercent) rmUsagePercent.textContent = `${Number(result.apptookUsagePercent || 0).toFixed(2)}%`;
-    if (rmCurrentSourceKey) rmCurrentSourceKey.textContent = String(result.currentSourceKey || '-');
-    if (rmTotalCapacity) rmTotalCapacity.textContent = String(result.totalTokenCapacity || 0);
-
-    const licenses = Array.isArray(result.licenses) ? result.licenses : [];
-    const rows = licenses.length
-      ? [
-          ['sequence', 'sourceKey', 'tokenCapacity', 'consumedRaw', 'usagePercent', 'isCurrent'],
-          ...licenses.map((x) => [x.sequence, x.sourceKey, x.tokenCapacity, x.consumedRaw, `${x.usagePercent}%`, x.isCurrent ? 'Running' : ''])
-        ]
-      : [];
-    renderTable(rmLicensesTable, rows);
-  }
-
-  async function loadRuntimeMonitor(showSuccess = true) {
-    const apptookKeyValue = String((rmApptookKey && rmApptookKey.value) || '').trim();
-    if (!apptookKeyValue) {
-      setStatus('Please provide APTOOK Key for Runtime Monitor.');
-      return null;
-    }
-
-    if (rmLoadButton) setBusy(rmLoadButton, true, 'Loading...');
-    if (rmRefreshButton) setBusy(rmRefreshButton, true, 'Refreshing...');
-
-    try {
-      const query = `/runtime/monitor?apptookKey=${encodeURIComponent(apptookKeyValue)}`;
-      const result = await callLocalRest(query, 'GET');
-      state.runtimeMonitor = result;
-      setResponse(result);
-      renderRuntimeMonitorData(result);
-      if (showSuccess) setStatus(`Runtime monitor loaded for ${apptookKeyValue}.`);
-      return result;
-    } catch (err) {
-      setResponse({ ok: false, message: err.message || String(err) });
-      setStatus(err.message || String(err));
-      return null;
-    } finally {
-      if (rmLoadButton) setBusy(rmLoadButton, false);
-      if (rmRefreshButton) setBusy(rmRefreshButton, false);
-    }
-  }
-
-  function stopRuntimeSimulation(silent = false) {
-    if (state.runtimeSimTimer) {
-      clearInterval(state.runtimeSimTimer);
-      state.runtimeSimTimer = null;
-    }
-    if (state.runtimeSimRefreshTimer) {
-      clearInterval(state.runtimeSimRefreshTimer);
-      state.runtimeSimRefreshTimer = null;
-    }
-    state.runtimeSimBusy = false;
-    state.runtimeSimAwaitRefresh = false;
-    state.runtimeSimCtx = null;
-    if (rmSimStartButton) rmSimStartButton.disabled = false;
-    if (rmSimStopButton) rmSimStopButton.disabled = false;
-    if (!silent) setStatus('Runtime simulation stopped.');
-  }
-
-  async function startRuntimeSimulation() {
-    const apptookKeyValue = String((rmApptookKey && rmApptookKey.value) || '').trim();
-    if (!apptookKeyValue) {
-      setStatus('Please provide APTOOK Key before starting simulation.');
-      return;
-    }
-
-    const thresholdPercent = Math.max(1, Math.min(100, Number((rmSimThreshold && rmSimThreshold.value) || 95)));
-    const intervalMs = 100;
-    if (rmSimIntervalMs) rmSimIntervalMs.value = '100';
-    const targetSeconds = Math.max(1, Number((rmSimTargetSeconds && rmSimTargetSeconds.value) || 5));
-
-    const monitor = await loadRuntimeMonitor(false);
-    if (!monitor) return;
-
-    stopRuntimeSimulation(true);
-    if (rmSimStartButton) rmSimStartButton.disabled = true;
-    if (rmSimStopButton) rmSimStopButton.disabled = false;
-
-    setStatus(`Simulation running (threshold ${thresholdPercent}%, interval ${intervalMs}ms).`);
-
-    state.runtimeSimCtx = null;
-
-    state.runtimeSimTimer = setInterval(async () => {
-      if (state.runtimeSimBusy || state.runtimeSimAwaitRefresh) return;
-      state.runtimeSimBusy = true;
-
-      try {
-        const latest = state.runtimeMonitor;
-        const licenses = latest && Array.isArray(latest.licenses) ? latest.licenses : [];
-        const active = licenses.find((x) => !!x.isCurrent) || licenses[0];
-        if (!active) return;
-
-        const activeId = Number(active.groupKeyId || 0);
-        const consumedRaw = Number(active.consumedRaw || 0);
-        const capacity = Number(active.tokenCapacity || 100);
-        const targetRaw = (capacity * thresholdPercent) / 100;
-        const nowMs = Date.now();
-
-        if (!state.runtimeSimCtx || state.runtimeSimCtx.activeId !== activeId) {
-          state.runtimeSimCtx = {
-            activeId,
-            startConsumedRaw: consumedRaw,
-            targetRaw,
-            startedAtMs: nowMs
-          };
-        }
-
-        const elapsedMs = nowMs - Number(state.runtimeSimCtx.startedAtMs || nowMs);
-        const progress = Math.min(1, elapsedMs / (targetSeconds * 1000));
-        const startRaw = Number(state.runtimeSimCtx.startConsumedRaw || 0);
-        const simTargetRaw = Number(state.runtimeSimCtx.targetRaw || targetRaw);
-        let nextRaw = startRaw + (simTargetRaw - startRaw) * progress;
-        if (nextRaw <= consumedRaw) {
-          nextRaw = consumedRaw + 0.000001;
-        }
-
-        if (latest && Array.isArray(latest.licenses)) {
-          const activeLicense = latest.licenses.find((x) => Number(x.groupKeyId || 0) === activeId);
-          if (activeLicense) {
-            activeLicense.consumedRaw = Number(nextRaw.toFixed(6));
-            activeLicense.usagePercent = capacity > 0 ? Number(((activeLicense.consumedRaw / capacity) * 100).toFixed(2)) : 0;
-          }
-          const totalCap = latest.licenses.reduce((sum, x) => sum + Number(x.tokenCapacity || 0), 0);
-          const totalUsed = latest.licenses.reduce((sum, x) => sum + Number(x.consumedRaw || 0), 0);
-          latest.totalTokenCapacity = Number(totalCap.toFixed(6));
-          latest.totalConsumedRaw = Number(totalUsed.toFixed(6));
-          latest.apptookUsagePercent = totalCap > 0 ? Number(((totalUsed / totalCap) * 100).toFixed(2)) : 0;
-          renderRuntimeMonitorData(latest);
-        }
-
-        const syncRes = await callLocalRest('/runtime/dashboard-sync', 'POST', {
-          apptookKey: apptookKeyValue,
-          deviceId: 'sim-device',
-          rawUsage: nextRaw,
-          displayUsage: nextRaw,
-          thresholdPercent
-        });
-
-        if (!syncRes || syncRes.ok === false) {
-          throw new Error(syncRes && syncRes.message ? syncRes.message : 'dashboard-sync failed');
-        }
-
-        if (String(syncRes.message || '').includes('exhausted')) {
-          stopRuntimeSimulation(true);
-          setStatus('Simulation stopped: APTOOK usage reached 100% (all licenses >= 95%).');
-          return;
-        }
-
-        const activeUsagePercent = Number(active.usagePercent || 0);
-        if (progress >= 1 || activeUsagePercent >= thresholdPercent) {
-          const loopRes = await callLocalRest('/runtime/loop-next', 'POST', {
-            apptookKey: apptookKeyValue,
-            reason: `auto_switch_threshold_${thresholdPercent}`,
-            deviceId: 'sim-device'
-          });
-
-          state.runtimeSimCtx = null;
-          state.runtimeSimAwaitRefresh = true;
-          await loadRuntimeMonitor(false);
-          state.runtimeSimAwaitRefresh = false;
-
-          if (loopRes && loopRes.ok === false && String(loopRes.message || '').includes('exhausted')) {
-            stopRuntimeSimulation(true);
-            setStatus('Simulation stopped: APTOOK usage reached the switch threshold across all licenses.');
-            return;
-          }
-        }
-      } catch (err) {
-        const msg = err.message || String(err);
-        if (String(msg).includes('exhausted')) {
-          stopRuntimeSimulation(true);
-          setStatus('Simulation stopped: APTOOK usage reached 100% (all licenses >= 95%).');
-        } else {
-          setResponse({ ok: false, message: msg, context: 'simulation-step' });
-        }
-      } finally {
-        state.runtimeSimBusy = false;
-      }
-    }, intervalMs);
-
-    const monitorRefreshMs = Math.max(150, Math.min(1000, intervalMs * 2));
-    state.runtimeSimRefreshTimer = setInterval(() => {
-      if (!state.runtimeSimBusy && !state.runtimeSimAwaitRefresh) {
-        loadRuntimeMonitor(false);
-      }
-    }, monitorRefreshMs);
-  }
-
-  if (tabMainButton) {
-    tabMainButton.addEventListener('click', () => switchTab('main'));
-  }
-  if (tabRuntimeMonitorButton) {
-    tabRuntimeMonitorButton.addEventListener('click', () => switchTab('runtime'));
-  }
-
-  if (rmLoadButton) {
-    rmLoadButton.addEventListener('click', () => loadRuntimeMonitor(true));
-  }
-  if (rmRefreshButton) {
-    rmRefreshButton.addEventListener('click', () => loadRuntimeMonitor(true));
-  }
-  if (rmSimStartButton) {
-    rmSimStartButton.addEventListener('click', () => startRuntimeSimulation());
-  }
-  if (rmSimStopButton) {
-    rmSimStopButton.disabled = true;
-    rmSimStopButton.addEventListener('click', () => {
-      stopRuntimeSimulation(false);
-    });
-  }
-
-  if (rmSimResetButton) {
-    rmSimResetButton.addEventListener('click', async () => {
-      const apptookKeyValue = String((rmApptookKey && rmApptookKey.value) || '').trim();
-      if (!apptookKeyValue) {
-        setStatus('Please provide APTOOK Key before reset.');
-        return;
-      }
-
-      stopRuntimeSimulation(true);
-      setBusy(rmSimResetButton, true, 'Resetting...');
-
-      try {
-        const result = await callLocalRest('/runtime/reset-sim', 'POST', { apptookKey: apptookKeyValue });
-        setResponse(result);
-        await loadRuntimeMonitor(false);
-        setStatus('Reset completed. You can run simulation again.');
-      } catch (err) {
-        setResponse({ ok: false, message: err.message || String(err), context: 'reset-sim' });
-        setStatus(err.message || String(err));
-      } finally {
-        setBusy(rmSimResetButton, false);
-      }
-    });
-  }
-
-  if (localRefreshApptookButton) {
-    localRefreshApptookButton.addEventListener('click', () => {
-      refreshLocalApptookKeys(true);
-    });
-  }
-
-  async function callRuntime(path, body, button, busyText) {
-    if (button) setBusy(button, true, busyText || 'Running...');
-    try {
-      const base = String(window.location.origin).replace(/\/+$/, '') + '/wp-json/extension-cursor/v1';
-      const result = await callLocalRest(path, 'POST', body, base);
-      setResponse(result);
-      setStatus(result.message || 'Runtime test success.');
-      return result;
-    } catch (err) {
-      setResponse({ ok: false, message: err.message || String(err), path, body });
-      setStatus(err.message || String(err));
-      return null;
-    } finally {
-      if (button) setBusy(button, false);
-    }
-  }
-
 
   if (localCreateApptookButton) {
     localCreateApptookButton.addEventListener('click', async () => {
@@ -1329,115 +1110,36 @@
     });
   }
 
-  importSourceKeysButton.addEventListener('click', async () => {
-    const keys = normalizeLines(sourceKeysText.value);
-    if (!keys.length) return setStatus('Please provide at least one source license.');
-    if (!sourceExpireAt.value) return setStatus('Please provide source expire date.');
+  if (localRefreshApptookButton) {
+    localRefreshApptookButton.addEventListener('click', () => {
+      refreshLocalApptookKeys(true);
+    });
+  }
 
-    setBusy(importSourceKeysButton, true, 'Importing...');
-    setStatus('Importing source licenses...');
+  async function callRuntime(path, body, button, busyText) {
+    if (button) setBusy(button, true, busyText || 'Running...');
     try {
-      const result = await postAction('adminImportSourceLicenses', {
-        sourceKeys: keys,
-        sourceExpireAt: sourceExpireAt.value,
-        maxDevices: sourceMaxDevices.value || 1,
-        sourceTokenCapacity: sourceTokenCapacity.value || 100,
-        note: sourceNote.value || ''
-      });
-      setStatus(result.message || 'Imported.');
-      sourceKeysText.value = '';
-      await refreshAllData(false);
+      const base = String(window.location.origin).replace(/\/+$/, '') + '/wp-json/extension-cursor/v1';
+      const result = await callLocalRest(path, 'POST', body, base);
+      setResponse(result);
+      setStatus(result.message || 'Runtime test success.');
+      return result;
     } catch (err) {
+      setResponse({ ok: false, message: err.message || String(err), path, body });
       setStatus(err.message || String(err));
+      return null;
     } finally {
-      setBusy(importSourceKeysButton, false);
+      if (button) setBusy(button, false);
     }
-  });
+  }
+  if (tabMainButton) {
+    tabMainButton.addEventListener('click', () => switchTab('main'));
+  }
+  if (tabSimulationButton) {
+    tabSimulationButton.addEventListener('click', () => switchTab('simulation'));
+  }
 
-  randomApptookKeyButton.addEventListener('click', () => {
-    apptookKey.value = buildRandomApptookKey();
-  });
-
-  createApptookKeyButton.addEventListener('click', async () => {
-    if (!appKeyExpireAt.value) return setStatus('Please provide APPTOOK key expire date.');
-
-    setBusy(createApptookKeyButton, true, 'Creating...');
-    setStatus('Creating APPTOOK key...');
-    try {
-      const result = await postAction('adminCreateApptookKey', {
-        apptookKey: String(apptookKey.value || '').trim(),
-        keyType: keyType.value,
-        expireAt: appKeyExpireAt.value,
-        note: appKeyNote.value || ''
-      });
-
-      if (result.data && result.data.apptookKey) {
-        apptookKey.value = result.data.apptookKey;
-        assignApptookKeySelect.value = result.data.apptookKey;
-      }
-
-      setStatus(result.message || 'APPTOOK key created.');
-      await refreshAllData(false);
-    } catch (err) {
-      setStatus(err.message || String(err));
-    } finally {
-      setBusy(createApptookKeyButton, false);
-    }
-  });
-
-  addSourceRowButton.addEventListener('click', () => {
-    const record = getSelectedKeyRecord();
-    if (record && record.keyType === 'single' && sourceRows.children.length >= 1) {
-      setStatus('Single APPTOOK keys can only use one source license.');
-      return;
-    }
-    createSourceRow('');
-    enforceAssignKeyType();
-  });
-
-  assignApptookKeySelect.addEventListener('change', () => {
-    const selected = String(assignApptookKeySelect.value || '').trim();
-    if (!selected) {
-      sourceRows.innerHTML = '';
-      createSourceRow('');
-      enforceAssignKeyType();
-      return;
-    }
-    refillAssignRows(selected);
-  });
-
-  saveSourcesButton.addEventListener('click', async () => {
-    const selectedKey = String(assignApptookKeySelect.value || '').trim();
-    if (!selectedKey) return setStatus('Please select an APPTOOK key first.');
-
-    const record = getSelectedKeyRecord();
-    const values = Array.from(sourceRows.querySelectorAll('.source-key-input'))
-      .map((input) => String(input.value || '').trim())
-      .filter(Boolean);
-
-    if (!values.length) return setStatus('Please provide at least one source mapping.');
-    if (record && record.keyType === 'single' && values.length !== 1) {
-      return setStatus('Single APPTOOK keys can only use one source license.');
-    }
-
-    setBusy(saveSourcesButton, true, 'Saving...');
-    setStatus('Saving source mapping...');
-    try {
-      const result = await postAction('adminSaveApptookKeySources', {
-        apptookKey: selectedKey,
-        sourceKeys: values
-      });
-      setStatus(result.message || 'Source mapping saved.');
-      await refreshAllData(false);
-    } catch (err) {
-      setStatus(err.message || String(err));
-    } finally {
-      setBusy(saveSourcesButton, false);
-    }
-  });
-
-  createSourceRow('');
-  enforceAssignKeyType();
   refreshLocalData(false);
   refreshLocalApptookKeys(false);
+  refreshSimulationLicenses(false);
 })();

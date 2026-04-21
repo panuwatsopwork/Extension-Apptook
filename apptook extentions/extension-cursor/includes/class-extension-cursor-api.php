@@ -109,6 +109,20 @@ final class Extension_Cursor_API {
 
 		register_rest_route(
 			'extension-cursor/v1',
+			'/apptook-keys/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array($this, 'delete_apptook_key'),
+					'permission_callback' => array($this, 'permission_check'),
+				),
+			)
+		);
+
+		// Simulation engine routes removed to keep runtime/main flow clean.
+
+		register_rest_route(
+			'extension-cursor/v1',
 			'/runtime/login',
 			array(
 				array(
@@ -203,18 +217,6 @@ final class Extension_Cursor_API {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array($this, 'reorder_group_key'),
-					'permission_callback' => array($this, 'permission_check'),
-				),
-			)
-		);
-
-		register_rest_route(
-			'extension-cursor/v1',
-			'/groups/(?P<id>\d+)/keys/resequence',
-			array(
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array($this, 'resequence_group_keys'),
 					'permission_callback' => array($this, 'permission_check'),
 				),
 			)
@@ -402,6 +404,51 @@ final class Extension_Cursor_API {
 		return new WP_REST_Response(array('ok' => true, 'items' => $rows), 200);
 	}
 
+	public function delete_apptook_key(WP_REST_Request $request): WP_REST_Response {
+		global $wpdb;
+		$tables = Extension_Cursor_DB::table_names();
+		$apptook_key_id = (int) $request->get_param('id');
+
+		$record = $wpdb->get_row(
+			$wpdb->prepare("SELECT id, apptook_key FROM {$tables['apptook_keys']} WHERE id = %d LIMIT 1", $apptook_key_id),
+			ARRAY_A
+		);
+
+		if (! $record) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK key not found.'), 404);
+		}
+
+		$wpdb->delete($tables['usage_logs'], array('apptook_key_id' => $apptook_key_id), array('%d'));
+		$wpdb->delete($tables['switch_logs'], array('apptook_key_id' => $apptook_key_id), array('%d'));
+		$wpdb->delete($tables['apptook_keys'], array('id' => $apptook_key_id), array('%d'));
+
+		return new WP_REST_Response(array('ok' => true, 'message' => 'APTOOK key deleted successfully.'), 200);
+	}
+
+	public function list_simulation_licenses(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
+	public function create_simulation_license(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
+	public function delete_simulation_license(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
+	public function start_simulation_license(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
+	public function stop_simulation_license(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
+	public function reset_simulation_license(WP_REST_Request $request): WP_REST_Response {
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
+	}
+
 	public function create_apptook_key(WP_REST_Request $request): WP_REST_Response {
 		global $wpdb;
 		$tables = Extension_Cursor_DB::table_names();
@@ -472,22 +519,17 @@ final class Extension_Cursor_API {
 			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK key not found / inactive / expired.'), 404);
 		}
 
-		$group_id      = (int) ($key_row['group_id'] ?? 0);
-		$threshold_percent = isset($data['thresholdPercent']) ? max(1, min(100, (float) $data['thresholdPercent'])) : 95.0;
-		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted.'), 403);
-		}
-
-		$group_key_row = $this->get_first_group_key($group_id);
-		if (! $group_key_row || empty($group_key_row['source_key'])) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'No stock key available for this group.'), 400);
+		$group_id = (int) ($key_row['group_id'] ?? 0);
+		$first_key = $this->get_first_group_key($group_id);
+		if (! $first_key || empty($first_key['source_key'])) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'No licence available in group.'), 400);
 		}
 
 		$wpdb->update(
 			$tables['apptook_keys'],
 			array(
-				'current_group_key_id' => (int) $group_key_row['id'],
-				'current_sequence'     => (int) $group_key_row['sequence'],
+				'current_group_key_id' => (int) $first_key['id'],
+				'current_sequence'     => (int) $first_key['sequence'],
 				'updated_at'           => current_time('mysql'),
 			),
 			array('id' => (int) $key_row['id']),
@@ -495,19 +537,23 @@ final class Extension_Cursor_API {
 			array('%d')
 		);
 
-		return new WP_REST_Response(
-			array(
-				'ok'          => true,
-				'message'     => 'Runtime login success.',
-				'apptookKey'  => $apptook_key,
-				'deviceId'    => $device_id,
-				'keyType'     => (string) ($key_row['key_type'] ?? 'loop'),
-				'groupId'     => $group_id,
-				'sourceKey'   => (string) $group_key_row['source_key'],
-				'sequence'    => (int) $group_key_row['sequence'],
-			),
-			200
-		);
+		$monitor = $this->build_runtime_monitor_payload((int) $key_row['id'], $group_id);
+
+		return new WP_REST_Response(array(
+			'ok'                 => true,
+			'message'            => 'Login success.',
+			'sessionToken'       => wp_generate_password(48, false, false),
+			'apptookKey'         => $apptook_key,
+			'groupId'            => $group_id,
+			'licenseCode'        => (string) ($first_key['source_key'] ?? ''),
+			'currentSourceKey'   => (string) ($first_key['source_key'] ?? ''),
+			'currentKeyCode'     => (string) ($first_key['source_key'] ?? ''),
+			'currentSequence'    => (int) ($first_key['sequence'] ?? 1),
+			'usagePercent'       => isset($monitor['apptookUsagePercent']) ? (float) $monitor['apptookUsagePercent'] : 0.0,
+			'currentRawUsage'    => isset($monitor['totalConsumedRaw']) ? (float) $monitor['totalConsumedRaw'] : 0.0,
+			'totalTokenCapacity' => isset($monitor['totalTokenCapacity']) ? (float) $monitor['totalTokenCapacity'] : 0.0,
+			'licenses'           => isset($monitor['licenses']) ? $monitor['licenses'] : array(),
+		), 200);
 	}
 
 	public function runtime_loop_next(WP_REST_Request $request): WP_REST_Response {
@@ -530,9 +576,9 @@ final class Extension_Cursor_API {
 		}
 
 		$group_id       = (int) ($key_row['group_id'] ?? 0);
-		$threshold_percent = isset($data['thresholdPercent']) ? max(1, min(100, (float) $data['thresholdPercent'])) : 95.0;
+		$threshold_percent = 100.0;
 		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted.'), 403);
+			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 100%).'), 403);
 		}
 		$current_key_id = (int) ($key_row['current_group_key_id'] ?? 0);
 
@@ -635,9 +681,10 @@ final class Extension_Cursor_API {
 		$group_id = (int) ($key_row['group_id'] ?? 0);
 		$current_group_key_id = (int) ($key_row['current_group_key_id'] ?? 0);
 		$current_sequence = (int) ($key_row['current_sequence'] ?? 0);
+		$threshold_percent = 100.0;
 
-		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, 95.0)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 95%).'), 403);
+		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
+			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 100%).'), 403);
 		}
 
 		if ($current_group_key_id <= 0) {
@@ -685,6 +732,49 @@ final class Extension_Cursor_API {
 			$effective_raw_usage = min((float) $effective_raw_usage, $current_capacity);
 		}
 
+		if ($current_group_key_id <= 0) {
+			$first_key = $this->get_first_group_key($group_id);
+			if ($first_key) {
+				$current_group_key_id = (int) $first_key['id'];
+				$current_sequence = (int) $first_key['sequence'];
+				$current_key_row = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT gk.id, gk.sequence, sk.id AS stock_key_id, sk.source_key, sk.token_capacity
+						 FROM {$tables['group_keys']} gk
+						 LEFT JOIN {$tables['stock_keys']} sk ON sk.id = gk.stock_key_id
+						 WHERE gk.id = %d AND gk.group_id = %d",
+						$current_group_key_id,
+						$group_id
+					),
+					ARRAY_A
+				);
+			}
+		}
+
+		$source_usage_percent = $current_capacity > 0 ? (($current_key_row ? (float) ($current_key_row['consumed_raw'] ?? 0) : 0.0) / $current_capacity) * 100.0 : 0.0;
+		if ($current_key_row && $source_usage_percent >= 100.0) {
+			$next_key = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT gk.id, gk.sequence, sk.id AS stock_key_id, sk.source_key, sk.token_capacity
+					 FROM {$tables['group_keys']} gk
+					 LEFT JOIN {$tables['stock_keys']} sk ON sk.id = gk.stock_key_id
+					 WHERE gk.group_id = %d AND gk.sequence > %d
+					 ORDER BY gk.sequence ASC
+					 LIMIT 1",
+					$group_id,
+					$current_sequence
+				),
+				ARRAY_A
+			);
+			if ($next_key) {
+				$current_group_key_id = (int) $next_key['id'];
+				$current_sequence = (int) $next_key['sequence'];
+				$current_key_row = $next_key;
+				$current_stock_key_id = isset($current_key_row['stock_key_id']) ? (int) $current_key_row['stock_key_id'] : $current_stock_key_id;
+				$current_capacity = isset($current_key_row['token_capacity']) ? (float) $current_key_row['token_capacity'] : $current_capacity;
+			}
+		}
+
 		$wpdb->insert(
 			$tables['usage_logs'],
 			array(
@@ -699,8 +789,10 @@ final class Extension_Cursor_API {
 			array('%d', '%d', '%s', '%f', '%f', '%s', '%s')
 		);
 
-		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, 95.0)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK usage exhausted (all licenses >= 95%).'), 403);
+		$threshold_percent = isset($data['thresholdPercent']) ? max(1.0, min(100.0, (float) $data['thresholdPercent'])) : 95.0;
+
+		if ($this->is_apptook_exhausted((int) $key_row['id'], $group_id, $threshold_percent)) {
+			return new WP_REST_Response(array('ok' => false, 'message' => sprintf('APTOOK usage exhausted (all licenses >= %s%%).', rtrim(rtrim(number_format($threshold_percent, 2, '.', ''), '0'), '.'))), 403);
 		}
 
 		$monitor = $this->build_runtime_monitor_payload((int) $key_row['id'], $group_id);
@@ -722,85 +814,11 @@ final class Extension_Cursor_API {
 	}
 
 	public function runtime_monitor(WP_REST_Request $request): WP_REST_Response {
-		global $wpdb;
-		$tables = Extension_Cursor_DB::table_names();
-		$apptook_key = sanitize_text_field((string) $request->get_param('apptookKey'));
-
-		if ($apptook_key === '') {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'apptookKey query param is required.'), 400);
-		}
-
-		$key_row = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT id, apptook_key, group_id, key_type, status, expire_at, current_group_key_id, current_sequence
-				 FROM {$tables['apptook_keys']}
-				 WHERE apptook_key = %s
-				 LIMIT 1",
-				$apptook_key
-			),
-			ARRAY_A
-		);
-
-		if (! $key_row) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK key not found.'), 404);
-		}
-
-		$payload = $this->build_runtime_monitor_payload((int) $key_row['id'], (int) $key_row['group_id']);
-
-		return new WP_REST_Response(
-			array_merge(
-				array(
-					'ok'         => true,
-					'apptookKey' => (string) $key_row['apptook_key'],
-					'groupId'    => (int) $key_row['group_id'],
-					'keyType'    => (string) $key_row['key_type'],
-					'status'     => (string) $key_row['status'],
-				),
-				$payload
-			),
-			200
-		);
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
 	}
 
 	public function runtime_reset_sim(WP_REST_Request $request): WP_REST_Response {
-		global $wpdb;
-		$tables = Extension_Cursor_DB::table_names();
-		$body   = $request->get_json_params();
-		$data   = is_array($body) ? $body : array();
-		$apptook_key = isset($data['apptookKey']) ? sanitize_text_field((string) $data['apptookKey']) : '';
-
-		if ($apptook_key === '') {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'apptookKey is required.'), 400);
-		}
-
-		$key_row = $wpdb->get_row(
-			$wpdb->prepare("SELECT id, group_id FROM {$tables['apptook_keys']} WHERE apptook_key = %s LIMIT 1", $apptook_key),
-			ARRAY_A
-		);
-		if (! $key_row) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'APTOOK key not found.'), 404);
-		}
-
-		$apptook_key_id = (int) $key_row['id'];
-		$group_id = (int) $key_row['group_id'];
-		$first = $this->get_first_group_key($group_id);
-
-		$wpdb->query($wpdb->prepare("DELETE FROM {$tables['usage_logs']} WHERE apptook_key_id = %d", $apptook_key_id));
-		$wpdb->query($wpdb->prepare("DELETE FROM {$tables['switch_logs']} WHERE apptook_key_id = %d", $apptook_key_id));
-
-		$wpdb->update(
-			$tables['apptook_keys'],
-			array(
-				'current_group_key_id' => $first ? (int) $first['id'] : 0,
-				'current_sequence'     => $first ? (int) $first['sequence'] : 0,
-				'updated_at'           => current_time('mysql'),
-			),
-			array('id' => $apptook_key_id),
-			array('%d', '%d', '%s'),
-			array('%d')
-		);
-
-		return new WP_REST_Response(array('ok' => true, 'message' => 'Simulation data reset completed.'), 200);
+		return new WP_REST_Response(array('ok' => false, 'message' => 'Simulation engine has been removed.'), 410);
 	}
 
 	private function build_runtime_monitor_payload(int $apptook_key_id, int $group_id): array {
@@ -846,15 +864,25 @@ final class Extension_Cursor_API {
 		$total_capacity = 0.0;
 		$total_consumed = 0.0;
 		$current_source_key = '';
+		$active_source = null;
 
 		$normalized = array_map(
-			function (array $row) use (&$total_capacity, &$total_consumed, $current_group_key_id, &$current_source_key): array {
+			function (array $row) use (&$total_capacity, &$total_consumed, $current_group_key_id, &$current_source_key, &$active_source): array {
 				$capacity = (float) ($row['token_capacity'] ?? 0);
 				$consumed = min((float) ($row['consumed_raw'] ?? 0), $capacity > 0 ? $capacity : (float) ($row['consumed_raw'] ?? 0));
 				$percent = $capacity > 0 ? min(100.0, ($consumed / $capacity) * 100.0) : 0.0;
 				$is_current = (int) $row['group_key_id'] === $current_group_key_id;
 				if ($is_current) {
 					$current_source_key = (string) $row['source_key'];
+					$active_source = array(
+						'groupKeyId'    => (int) $row['group_key_id'],
+						'sequence'      => (int) $row['sequence'],
+						'stockKeyId'    => (int) $row['stock_key_id'],
+						'sourceKey'     => (string) $row['source_key'],
+						'tokenCapacity' => $capacity,
+						'consumedRaw'   => round($consumed, 6),
+						'usagePercent'  => round($percent, 2),
+					);
 				}
 
 				$total_capacity += $capacity;
@@ -1143,48 +1171,4 @@ final class Extension_Cursor_API {
 		return new WP_REST_Response(array('ok' => true, 'message' => 'Group key order updated.', 'debug' => array('from' => $current_sequence, 'to' => $target_sequence)), 200);
 	}
 
-	public function resequence_group_keys(WP_REST_Request $request): WP_REST_Response {
-		global $wpdb;
-		$tables   = Extension_Cursor_DB::table_names();
-		$group_id = (int) $request->get_param('id');
-		$body     = $request->get_json_params();
-		$data     = is_array($body) ? $body : array();
-
-		$ordered_ids = isset($data['orderedGroupKeyIds']) && is_array($data['orderedGroupKeyIds'])
-			? array_values(array_filter(array_map('intval', $data['orderedGroupKeyIds'])))
-			: array();
-
-		if (empty($ordered_ids)) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'orderedGroupKeyIds is required.'), 400);
-		}
-
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT id FROM {$tables['group_keys']} WHERE group_id = %d ORDER BY sequence ASC",
-				$group_id
-			),
-			ARRAY_A
-		);
-		$existing_ids = array_map(static fn($r) => (int) $r['id'], $rows ?: array());
-		sort($existing_ids);
-		$compare_ids = $ordered_ids;
-		sort($compare_ids);
-
-		if ($existing_ids !== $compare_ids) {
-			return new WP_REST_Response(array('ok' => false, 'message' => 'orderedGroupKeyIds does not match current group keys.'), 400);
-		}
-
-		$now = current_time('mysql');
-		foreach ($ordered_ids as $index => $group_key_id) {
-			$wpdb->update(
-				$tables['group_keys'],
-				array('sequence' => $index + 1, 'updated_at' => $now),
-				array('id' => $group_key_id, 'group_id' => $group_id),
-				array('%d', '%s'),
-				array('%d', '%d')
-			);
-		}
-
-		return new WP_REST_Response(array('ok' => true, 'message' => 'Group key sequence updated.'), 200);
-	}
 }

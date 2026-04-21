@@ -1,10 +1,10 @@
 {
   "name": "cursorpool",
-  "displayName": "Cursor Activation",
-  "description": "Cursor Activation, Auto Account Switching",
-  "publisher": "keg1255",
-  "version": "1.0.94",
-  "icon": "resources/icon.png",
+  "displayName": "Cursor Apptook",
+  "description": "Cursor Apptook,Token Premium Pro",
+  "publisher": "Apptook2026",
+  "version": "1.0.16",
+  "icon": "webview/APPTOOK.png",
   "engines": {
     "vscode": "^1.23.0"
   },
@@ -38,8 +38,8 @@
       "activitybar": [
         {
           "id": "cursorpool-sidebar",
-          "title": "CursorPool",
-          "icon": "resources/icon.png"
+          "title": "Cursor Apptook",
+          "icon": "webview/APPTOOK.png"
         }
       ]
     },
@@ -63,7 +63,7 @@
       ]
     },
     "configuration": {
-      "title": "CursorPool",
+      "title": "Cursor Apptook",
       "properties": {
         "cursorpool.logLevel": {
           "type": "string",

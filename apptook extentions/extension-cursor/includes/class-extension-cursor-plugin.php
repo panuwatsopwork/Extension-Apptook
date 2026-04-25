@@ -21,7 +21,6 @@ final class Extension_Cursor_Plugin {
 	}
 
 	private function __construct() {
-		Extension_Cursor_API::instance();
 		Extension_Cursor_Admin::instance();
 	}
 }

@@ -1,0 +1,11 @@
+---
+description: Always review README before changing project documentation
+alwaysApply: true
+---
+
+# README-First Workflow
+
+- Before updating `README.md`, always read the current file first.
+- Keep `README.md` aligned with the actual code structure and runtime behavior.
+- When new features or refactors are introduced, update `README.md` only after the code changes are complete.
+- Prefer concise, developer-focused notes: setup, architecture, key files, and data flow.

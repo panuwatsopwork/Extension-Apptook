@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>APPTOOK Backend UI Mockup</title>
+  <style>
+    :root { --panel: rgba(11, 18, 31, 0.92); --text: #eef4ff; --muted: #95a6c7; --cyan: #57d9ff; --border: rgba(87,217,255,.24); --border-strong: rgba(87,217,255,.75); --radius: 30px; --content-max: 1280px; }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(87,217,255,.08),transparent 28%),radial-gradient(circle at top right,rgba(122,124,255,.08),transparent 24%),linear-gradient(180deg,#060a12,#05070d 70%);min-height:100vh;padding:32px}
+    .shell{max-width:var(--content-max);margin:0 auto}.hero,.card,.stat,.table,.detail{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden}.hero::before,.card::before,.stat::before,.table::before,.detail::before{content:"";position:absolute;inset:0;padding:1px;border-radius:inherit;background:linear-gradient(90deg,transparent,rgba(87,217,255,.65),transparent);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.75}
+    .hero{padding:24px;display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{display:flex;gap:16px;align-items:center}.logo{width:72px;height:72px;border-radius:var(--radius);overflow:hidden;display:grid;place-items:center;flex:0 0 auto}.logo img{width:100%;height:100%;object-fit:contain;display:block}h1,h2,h3,p{margin:0}.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:.12em;font-size:12px;margin-bottom:8px}.hero h1{font-size:30px;line-height:1.1;margin-bottom:8px}.hero p{color:var(--muted);max-width:720px;line-height:1.6}.tabs{display:flex;gap:10px;flex-wrap:wrap}.tab{border:1px solid var(--border);background:#08101d;color:var(--text);border-radius:var(--radius);padding:12px 18px;font-weight:700;white-space:nowrap;cursor:pointer}.tab.is-active{border-color:var(--border-strong);background:rgba(87,217,255,.12)}.panel{display:none}.panel.is-active{display:block}.grid-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}.stat{padding:18px;min-height:118px}.stat .label{color:var(--muted);font-size:13px;margin-bottom:18px}.stat .value{font-size:34px;font-weight:800;letter-spacing:-.04em;color:#f8fbff}.stat .hint{margin-top:8px;color:var(--muted);font-size:13px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.card,.detail,.table{padding:22px}.card-head,.table-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}.card-head h2,.table-head h2{font-size:24px;margin-bottom:6px}.card-head p,.table-head p{color:var(--muted);line-height:1.6}.badge{border:1px solid var(--border);color:var(--cyan);background:rgba(87,217,255,.06);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;white-space:nowrap}.field-grid{display:grid;gap:14px;margin-top:16px}.field-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.field label{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}.field .help{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.5}.input,.select,.textarea{width:100%;border-radius:var(--radius);border:1px solid var(--border);background:#0a1220;color:#d7e4ff;padding:13px 14px;outline:none}.textarea{min-height:140px;resize:vertical}.input::placeholder,.textarea::placeholder{color:#7082a3}.button-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.btn{border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;font-weight:800;background:#08101d;color:var(--text);cursor:pointer}.btn.primary{background:rgba(87,217,255,.12);border-color:var(--border-strong)}.btn.soft{background:rgba(255,255,255,.03)}.mapping-row{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:12px;margin-top:14px;align-items:end}.table{margin-bottom:18px}table{width:100%;border-collapse:collapse;border-radius:calc(var(--radius) - 4px);overflow:hidden}th,td{padding:14px 12px;border-bottom:1px solid rgba(87,217,255,.08);text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}td{color:#e8f0ff}.footer-note{color:var(--muted);margin-top:18px;font-size:13px;line-height:1.6}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.list{display:grid;gap:12px;margin-top:12px}.list-item{border:1px solid var(--border);border-radius:var(--radius);padding:14px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;gap:12px;align-items:center}.list-item strong{display:block;margin-bottom:4px}.list-item span{color:var(--muted);font-size:13px}.key-selector{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.key-chip{border:1px solid var(--border);border-radius:var(--radius);padding:14px;background:#08101d;color:var(--text);cursor:pointer;text-align:left}.key-chip.is-active{border-color:var(--border-strong);background:rgba(87,217,255,.12)}.key-chip strong,.metric strong{display:block;margin-bottom:4px}.key-chip span,.metric span,.metric small{color:var(--muted)}.monitor-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.monitor-panel{display:grid;gap:18px}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.metric{border:1px solid var(--border);border-radius:var(--radius);padding:14px;background:rgba(255,255,255,.02)}.metric .value{font-size:30px;font-weight:800;margin-top:6px}.metric small{display:block;margin-top:6px;line-height:1.5}.usage-table th,.usage-table td{white-space:nowrap}.mini-note{margin-top:12px;padding:12px 14px;border-radius:var(--radius);border:1px dashed rgba(87,217,255,.22);background:rgba(87,217,255,.04);color:var(--muted);font-size:12px;line-height:1.55}
+    @media (max-width:1180px){.grid-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.layout,.detail-grid,.monitor-grid{grid-template-columns:1fr}.key-selector{grid-template-columns:1fr 1fr}}
+    @media (max-width:820px){body{padding:18px}.hero{flex-direction:column;align-items:flex-start}.field-grid.two,.mapping-row,.key-selector,.metrics{grid-template-columns:1fr}.grid-stats{grid-template-columns:1fr}.tab{width:100%;text-align:center}.tabs{width:100%}.card-head,.table-head{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="brand">
+        <div class="logo"><img src="../extension-cursor/assets/logo apptook.png" alt="APPTOOK Logo"></div>
+        <div>
+          <p class="eyebrow">APPTOOK Backend Concept</p>
+          <h1>สร้าง APPTOOK key, import licence ทีละรายการ และผูกหลาย licence ต่อ key ได้</h1>
+          <p>Mockup นี้แสดง flow ของระบบหลังบ้านตามหลักการใหม่: 1) กำหนด APPTOOK key 2) import licence ทีละรายการเพื่อใส่รายละเอียดได้ครบ 3) เลือก licence ได้มากกว่า 1 รายการจากรายการที่ import ไว้แล้ว 4) assign / unassign / replace mapping ได้อย่างชัดเจน</p>
+        </div>
+      </div>
+      <div class="tabs" aria-label="sections">
+        <button class="tab is-active" data-tab="main" type="button">Main</button>
+        <button class="tab" data-tab="monitor" type="button">Licence Monitor</button>
+      </div>
+    </section>
+
+    <section class="panel is-active" data-panel="main">
+      <section class="grid-stats">
+        <div class="stat"><div class="label">Keys Ready</div><div class="value">128</div><div class="hint">APPTOOK key ที่พร้อมใช้งาน</div></div>
+        <div class="stat"><div class="label">Licences Available</div><div class="value">42</div><div class="hint">licence ที่ยังไม่ถูกผูกกับ key</div></div>
+        <div class="stat"><div class="label">Mapped Licences</div><div class="value">86</div><div class="hint">licence ที่ถูก assign แล้ว</div></div>
+        <div class="stat"><div class="label">Needs Review</div><div class="value">7</div><div class="hint">รายการซ้ำ หมดอายุ หรือข้อมูลไม่ครบ</div></div>
+      </section>
+
+      <section class="layout">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h2>Prepare the licence pool</h2>
+              <p>Add each licence to the central pool first so it is ready to be assigned to a key in the next step.</p>
+            </div>
+            <div class="badge">Quick add</div>
+          </div>
+          <div class="field-grid two">
+            <div class="field"><label for="licenceKey">Licence Code</label><input id="licenceKey" class="input" type="text" placeholder="LIC-9001"></div>
+            <div class="field"><label for="tokenCapacity">Token limit</label><input id="tokenCapacity" class="input" type="number" min="1" step="1" value="10"></div>
+          </div>
+          <div class="field-grid two">
+            <div class="field"><label for="activeDays">Duration</label><select id="activeDays" class="select"><option value="1">1 day</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="365">365 days</option></select></div>
+            <div class="field"><label for="importRemark">Note</label><input id="importRemark" class="input" type="text" placeholder="Optional internal note"><div class="help">เมื่อกด add จะถูกตั้งสถานะเป็น <strong>available</strong> ทันที</div></div>
+          </div>
+          <div class="button-row"><button class="btn primary" type="button">Add to Pool</button><button class="btn soft" type="button">Clear</button></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h2>Create an APPTOOK key</h2>
+              <p>Create a new key for the user, then set the status and expiry before linking any licences.</p>
+            </div>
+            <div class="badge">Primary key</div>
+          </div>
+          <div class="field-grid two">
+            <div class="field"><label for="apptookKey">APPTOOK Key</label><input id="apptookKey" class="input" type="text" placeholder="Auto generate or paste key"></div>
+            <div class="field"><label for="status">Status</label><select id="status" class="select"><option>active</option><option>inactive</option><option>revoked</option></select></div>
+          </div>
+          <div class="field-grid two">
+            <div class="field"><label for="note">Note</label><input id="note" class="input" type="text" placeholder="Optional note for internal use"></div>
+            <div class="field"><label for="expiry">Expiry</label><input id="expiry" class="input" type="date"></div>
+          </div>
+          <div class="button-row"><button class="btn primary" type="button">Generate Key</button><button class="btn" type="button">Save Key</button><button class="btn soft" type="button">Reset</button></div>
+        </article>
+
+        <article class="card" style="grid-column:1/-1;">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h2>Assign one key to multiple licences</h2>
+              <p>Select a key first, then choose multiple licences from the same pool and assign them from one screen.</p>
+            </div>
+            <div class="badge">Multi-assign workflow</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start;">
+            <div style="display:grid;gap:14px;">
+              <div class="field-grid two" style="margin-top:0;">
+                <div class="field"><label for="selectKey">Select APPTOOK Key</label><select id="selectKey" class="select"><option>APT-001</option><option>APT-002</option><option>APT-003</option></select></div>
+                <div class="field"><label for="filterLicence">Search / Filter Licence</label><input id="filterLicence" class="input" type="text" placeholder="Search by code, note, or token"></div>
+              </div>
+
+              <div class="field">
+                <label>Select Licence(s)</label>
+                <div style="display:grid;gap:10px;max-height:292px;overflow:auto;padding-right:4px;">
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" checked style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9001</strong><br><span style="color:var(--muted);font-size:13px;">30 days • 10 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9002</strong><br><span style="color:var(--muted);font-size:13px;">7 days • 50 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9003</strong><br><span style="color:var(--muted);font-size:13px;">1 day • 100 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" checked style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9004</strong><br><span style="color:var(--muted);font-size:13px;">90 days • 200 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9005</strong><br><span style="color:var(--muted);font-size:13px;">14 days • 25 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9010</strong><br><span style="color:var(--muted);font-size:13px;">30 days • 100 tokens • available</span></span>
+                  </label>
+                  <label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--cyan);flex:0 0 auto;">
+                    <span><strong>LIC-9011</strong><br><span style="color:var(--muted);font-size:13px;">90 days • 500 tokens • available</span></span>
+                  </label>
+                </div>
+                <div class="help">ติ๊กเลือกได้หลายรายการโดยไม่ต้องกด Ctrl / Cmd</div>
+              </div>
+            </div>
+
+            <div style="display:grid;gap:14px;">
+
+              <div class="mini-note">ระบบจะจัดลำดับ licence แบบอัตโนมัติเมื่อกด assign ดังนั้นไม่ต้องตั้ง priority เองในรอบแรก</div>
+              <div class="mini-note">แนะนำ flow แบบง่าย: 1) เลือก key 2) กรอง licence 3) เลือกหลายรายการ 4) กด assign 5) ถ้าต้องการแก้ไข ใช้ unassign หรือ replace</div>
+              <div class="button-row" style="margin-top:0;">
+                <button class="btn primary" style="flex:1" type="button">Assign Selected</button>
+                <button class="btn soft" style="flex:1" type="button">Refresh List</button>
+              </div>
+              <div class="button-row" style="margin-top:0;">
+                <button class="btn" style="flex:1" type="button">Unassign Selected</button>
+                <button class="btn" style="flex:1" type="button">Replace Selected</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section class="panel" data-panel="monitor">
+      <section class="table">
+        <div class="table-head"><div><p class="eyebrow">Monitor</p><h2>Licence Monitor</h2><p>คลิกเลือก APPTOOK Key เพื่อดูรายละเอียด key และ licence แบบละเอียดด้านล่าง</p></div><div class="badge">Monitoring</div></div>
+        <table>
+          <thead>
+            <tr><th>APPTOOK Key</th><th>Licence Count</th><th>Key Expiry</th><th>Key Usage %</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><button class="btn soft" type="button">APT-001</button></td><td>3</td><td>2026-06-30</td><td>68%</td><td>active</td><td>select</td></tr>
+            <tr><td><button class="btn soft" type="button">APT-002</button></td><td>2</td><td>2026-05-15</td><td>44%</td><td>active</td><td>select</td></tr>
+            <tr><td><button class="btn soft" type="button">APT-003</button></td><td>1</td><td>2026-04-28</td><td>12%</td><td>pending</td><td>select</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="monitor-grid">
+        <article class="detail">
+          <div class="card-head">
+            <div><p class="eyebrow">APPTOOK Key Detail</p><h2>APT-001</h2><p>สรุปภาพรวมของ APPTOOK Key ที่เลือก พร้อมวันหมดอายุและ % คงเหลือที่คำนวณจาก token capacity รวมของทุก licence ภายใต้ key นี้</p></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>Key expiry</span><div class="value">2026-06-30</div><small>วันหมดอายุของ APPTOOK key</small></div>
+            <div class="metric"><span>Remaining %</span><div class="value">68%</div><small>คำนวณจาก token capacity รวมของ licence ทั้งหมด</small></div>
+          </div>
+          <div class="mini-note">ในระบบจริง ค่านี้จะถูกอัปเดตจากข้อมูล usage ที่ส่งมาจาก Extension ของ user และใช้ประกอบการคำนวณ % การใช้งานคงเหลือของ key</div>
+        </article>
+
+        <article class="detail">
+          <div class="card-head">
+            <div><p class="eyebrow">Licence Details</p><h2>Licences in This Key</h2><p>รายละเอียดราย licence ที่ผูกกับ key นี้ รวมวันหมดอายุและ raw use ที่ส่งมาจาก Extension เพื่อใช้คำนวณสถานะ</p></div>
+          </div>
+          <div class="table" style="padding:0;border:none;background:transparent;box-shadow:none;">
+            <table class="usage-table">
+              <thead>
+                <tr><th>Licence</th><th>Expiry</th><th>Raw use</th><th>Token limit</th><th>Left</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>LIC-9001</td><td>2026-05-20</td><td>240</td><td>500</td><td>260</td></tr>
+                <tr><td>LIC-9004</td><td>2026-06-18</td><td>120</td><td>300</td><td>180</td></tr>
+                <tr><td>LIC-9007</td><td>2026-06-30</td><td>40</td><td>200</td><td>160</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mini-note">Raw use คือค่าการใช้งานจริงของ licence แต่ละตัว ซึ่งจะเป็นข้อมูลสำคัญในการคำนวณ % คงเหลือของ APPTOOK key อีกชั้นหนึ่ง</div>
+        </article>
+      </section>
+    </section>
+
+    <p class="footer-note">This layout is designed for the new flow: import licences one by one → create an APPTOOK key → assign multiple licences to one key → manage assign / unassign / replace clearly, ready for WordPress use with a 1280px content width.</p>
+  </div>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[data-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-panel]'));
+    function activateTab(tabName){tabs.forEach(tab=>tab.classList.toggle('is-active',tab.dataset.tab===tabName));panels.forEach(panel=>panel.classList.toggle('is-active',panel.dataset.panel===tabName));}
+    tabs.forEach(tab=>tab.addEventListener('click',()=>activateTab(tab.dataset.tab)));
+  </script>
+</body>
+</html>

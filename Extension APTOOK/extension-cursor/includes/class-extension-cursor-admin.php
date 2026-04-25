@@ -58,8 +58,8 @@ final class Extension_Cursor_Admin {
 		wp_enqueue_script('extension-cursor-admin-ui', EXT_CURSOR_URL . 'assets/js/ec-ui.js', array('jquery', 'extension-cursor-admin-api'), $js_version, true);
 		wp_enqueue_script('extension-cursor-admin-renderers', EXT_CURSOR_URL . 'assets/js/ec-renderers.js', array('jquery', 'extension-cursor-admin-ui'), $js_version, true);
 		wp_enqueue_script('extension-cursor-admin-state', EXT_CURSOR_URL . 'assets/js/ec-state.js', array('jquery'), $js_version, true);
-		wp_enqueue_script('extension-cursor-admin-monitor-edit', EXT_CURSOR_URL . 'assets/js/monitor-edit.js', array('jquery', 'extension-cursor-admin-api', 'extension-cursor-admin-ui', 'extension-cursor-admin-renderers'), $js_version, true);
-		wp_enqueue_script('extension-cursor-admin-actions', EXT_CURSOR_URL . 'assets/js/ec-actions.js', array('jquery', 'extension-cursor-admin-api', 'extension-cursor-admin-ui', 'extension-cursor-admin-renderers', 'extension-cursor-admin-state', 'extension-cursor-admin-monitor-edit'), $js_version, true);
+		wp_enqueue_script('extension-cursor-admin-monitor-edit', EXT_CURSOR_URL . 'assets/js/ec-actions-monitor.js', array('jquery', 'extension-cursor-admin-api', 'extension-cursor-admin-ui'), $js_version, true);
+		wp_enqueue_script('extension-cursor-admin-actions', EXT_CURSOR_URL . 'assets/js/ec-actions-main.js', array('jquery', 'extension-cursor-admin-api', 'extension-cursor-admin-ui', 'extension-cursor-admin-renderers', 'extension-cursor-admin-state', 'extension-cursor-admin-monitor-edit'), $js_version, true);
 		wp_enqueue_script('extension-cursor-admin', EXT_CURSOR_URL . 'assets/js/admin.js', array('jquery', 'extension-cursor-admin-actions'), $js_version, true);
 		wp_localize_script('extension-cursor-admin', 'ExtensionCursorAdmin', array('ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('extension_cursor_admin_nonce')));
 	}

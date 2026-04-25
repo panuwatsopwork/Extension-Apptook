@@ -1,5 +1,5 @@
 window.ExtensionCursorModules = window.ExtensionCursorModules || {};
-window.ExtensionCursorModules.createMonitorEdit = function createMonitorEdit({ api, ui, renderers, $, elements, onStateChanged }) {
+window.ExtensionCursorModules.createEcActionsMonitor = function createEcActionsMonitor({ api, ui, $, elements, onStateChanged }) {
   const { monitorEditPanel, monitorEditKeyTitle, monitorEditExpiry, monitorAssignedList, monitorAvailableList, monitorEditLoadAvailable, monitorEditClose, monitorEditAssign, monitorEditUnassign } = elements;
   let activeKeyId = 0;
 

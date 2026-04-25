@@ -1,5 +1,5 @@
 window.ExtensionCursorModules = window.ExtensionCursorModules || {};
-window.ExtensionCursorModules.createEcActions = function createEcActions({ api, ui, renderers, state, $, elements, monitorEdit }) {
+window.ExtensionCursorModules.createEcActionsMain = function createEcActionsMain({ api, ui, renderers, state, $, elements, monitorEdit }) {
   const { tabs, panels, refreshButton, importButton, clearLicenceForm, saveKeyButton, generateKeyButton, resetKeyButton, assignButton, licenceList, monitorRows, selectKey, licenceCode, tokenCapacity, activeDays, importRemark, apptookKey, note, expiry, debugAvailableButton, debugAssignmentButton } = elements;
 
   function selectedLicenceIds() {
@@ -37,7 +37,7 @@ window.ExtensionCursorModules.createEcActions = function createEcActions({ api, 
       }
       licenceList.html(renderers.renderLicenceList(Array.isArray(data.licences) ? data.licences : []));
       monitorRows.html(renderers.renderMonitorRows(Array.isArray(data.monitor_rows) ? data.monitor_rows : []));
-      renderMonitorDetail(data.monitor || {});
+      renderers.renderMonitorDetail(data.monitor || {});
     });
   }
 
@@ -61,8 +61,7 @@ window.ExtensionCursorModules.createEcActions = function createEcActions({ api, 
   function bindEvents() {
     tabs.on('click', function (event) {
       event.preventDefault();
-      const tab = $(this).data('tab');
-      setActiveTab(tab);
+      setActiveTab($(this).data('tab'));
     });
 
     selectKey.on('change', function () {
@@ -137,25 +136,19 @@ window.ExtensionCursorModules.createEcActions = function createEcActions({ api, 
       ajaxFeedback(api.post('extension_cursor_delete_key', { id: button.data('id') }), 'ลบ key เรียบร้อย', function (response) { reloadDashboard(selectKey.val() || 0).always(() => { if (response && response.success) ui.setNotice('ลบ key เรียบร้อย และอัปเดตตารางแล้ว', 'success'); }); });
     });
 
-    $(document).on('click', '.ec-monitor-table tbody tr, .ec-monitor-key', function (event) {
+    $(document).on('click', '.ec-monitor-table tbody tr', function (event) {
       event.preventDefault();
-      event.stopPropagation();
-      const $target = $(this);
-      const row = $target.is('tr') ? $target : $target.closest('tr');
+      const row = $(this);
       const keyId = parseInt(row.data('monitor-key'), 10) || 0;
       $('.ec-monitor-table tbody tr').removeClass('is-active');
       row.addClass('is-active');
-      ui.pressEffect($target.is('button') ? $target : row.find('.ec-monitor-key'));
+      ui.pressEffect(row.find('.ec-monitor-key'));
       if (!keyId) {
         ui.setNotice('ไม่พบ key สำหรับแสดงรายละเอียด', 'error');
         return;
       }
       selectKey.val(String(keyId));
-      api.post('extension_cursor_dashboard_snapshot', { key_id: keyId }).done((response) => {
-        if (!response || !response.success || !response.data) return;
-        renderMonitorDetail(response.data.monitor || {});
-        reloadDashboard(keyId);
-      });
+      reloadDashboard(keyId);
     });
 
     $(document).on('click', '.ec-monitor-edit', function (event) {

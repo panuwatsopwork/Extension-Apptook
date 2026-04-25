@@ -1,14 +1,13 @@
 jQuery(function ($) {
-  const viewData = window.ExtensionCursorAdminViewData || {};
   const modules = window.ExtensionCursorModules || {};
   const createEcState = modules.createEcState;
   const createEcApi = modules.createEcApi;
   const createEcUI = modules.createEcUI;
   const createEcRenderers = modules.createEcRenderers;
-  const createEcActions = modules.createEcActions;
-  const createMonitorEdit = modules.createMonitorEdit;
+  const createEcActionsMain = modules.createEcActionsMain;
+  const createEcActionsMonitor = modules.createEcActionsMonitor;
 
-  if (!createEcState || !createEcApi || !createEcUI || !createEcRenderers || !createEcActions || !createMonitorEdit) {
+  if (!createEcState || !createEcApi || !createEcUI || !createEcRenderers || !createEcActionsMain || !createEcActionsMonitor) {
     return;
   }
 
@@ -35,8 +34,6 @@ jQuery(function ($) {
     generateKeyButton: $('#ecGenerateKey'),
     resetKeyButton: $('#ecResetKey'),
     assignButton: $('#ecAssignSelected'),
-    unassignButton: $('#ecUnassignSelected'),
-    replaceButton: $('#ecReplaceSelected'),
     licenceList: $('#ecLicenceList'),
     monitorRows: $('#ecMonitorRows'),
     selectKey: $('#ecSelectKey'),
@@ -51,11 +48,12 @@ jQuery(function ($) {
     debugAssignmentButton: $('#ecDebugAssignment'),
   };
 
-  const monitorEdit = createMonitorEdit({ api, ui, $, elements, onStateChanged: function () { actions.reloadDashboard(elements.selectKey.val() || 0); } });
-  window.ExtensionCursorMonitorEdit = monitorEdit;
-  const actions = createEcActions({ api, ui, renderers, state, $, elements, viewData, monitorEdit });
-  actions.bindEvents();
-  monitorEdit.bindEvents();
-  actions.setActiveTab('main');
-  actions.reloadDashboard();
+  const monitorActions = createEcActionsMonitor({ api, ui, $, elements, onStateChanged: function () { mainActions.reloadDashboard(elements.selectKey.val() || 0); } });
+  window.ExtensionCursorMonitorEdit = monitorActions;
+  const mainActions = createEcActionsMain({ api, ui, renderers, state, $, elements, monitorEdit: monitorActions });
+
+  mainActions.bindEvents();
+  monitorActions.bindEvents();
+  mainActions.setActiveTab('main');
+  mainActions.reloadDashboard();
 });

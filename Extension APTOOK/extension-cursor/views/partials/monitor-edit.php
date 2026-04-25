@@ -9,8 +9,8 @@
 		<div class="ec-badge">Inline editor</div>
 	</div>
 	<div class="ec-monitor-edit-summary">
-		<div class="ec-mini-note">Selected Key: <strong id="ecMonitorEditKeyTitle">-</strong></div>
-		<div class="ec-mini-note">Key expiry: <strong id="ecMonitorEditExpiry">-</strong></div>
+		<div class="ec-mini-note ec-monitor-edit-summary-item">Selected Key: <strong id="ecMonitorEditKeyTitle">-</strong></div>
+		<div class="ec-mini-note ec-monitor-edit-summary-item">Key expiry: <strong id="ecMonitorEditExpiry">-</strong></div>
 	</div>
 	<div class="ec-actions compact" style="margin-bottom:16px;">
 		<button class="ec-btn ec-btn-primary" id="ecMonitorEditLoadAvailable" type="button">Load Available Licence(s)</button>
